@@ -239,9 +239,8 @@ class Summary(Plugin):
             logger.error(f"[Summary] 总结生成失败: {e}")
             return f"总结失败：{str(e)}"
     
-    def _multimodal_completion(self, api_key, image_path, text_prompt, model="GLM-4V-Flash", detail="low"):
-        """
-        调用多模态 API 进行图片理解和文本生成。
+    def _multimodal_completion(self, api_key, image_path, text_prompt, model=None, detail="low"):
+        """调用多模态 API 进行图片理解和文本生成
 
         Args:
             api_key (str): 你的 API 密钥。
@@ -253,12 +252,16 @@ class Summary(Plugin):
         Returns:
             str: API 返回的文本回复，如果请求失败则返回 None.
         """
+        # 使用配置的值或传入的参数
+        model = model or self.multimodal_llm_model
+        
+        # 使用配置中的 api_base 构建完整的 URL
+        api_url = f"{self.multimodal_llm_api_base}/chat/completions"
 
-        api_url = "https://api.72live.com/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
-            "Host": "api.72live.com"
+            "Host": urlparse(self.multimodal_llm_api_base).netloc
         }
 
         try:
