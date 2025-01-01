@@ -182,60 +182,84 @@ class JinaSum(Plugin):
         if re.match(r'^gpt', self.open_ai_model) and self.open_ai_model != 'gpt-4o-mini':
            payload['response_format'] = {"type": "json_object"}
         return payload
-    
+
     def _parse_json_with_fallback(self, text):
         """
         尝试解析JSON，如果失败则使用正则表达式提取关键信息
         """
         def clean_text(text):
-            return re.sub(r'\*\*','',text) if text else text
+            if not text:
+                return text
+            # 清理多余的符号和空白
+            text = re.sub(r'\*\*|\\n|\\r|\\t','',text)
+            text = re.sub(r'\s+',' ',text)
+            return text.strip()
             
         try:
-            # 去除 ```json 和 ``` 等标记
-            text = re.sub(r"```(json)?\s*", "", text, flags=re.IGNORECASE)
-            text = text.strip()
-            # 尝试去除不可见字符
-            text = "".join(ch for ch in text if ch.isprintable())
+            # 首先尝试提取JSON部分
+            json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1)
+        
+            # 清理文本并尝试JSON解析
+            text = clean_text(text)
             return json.loads(text)
+    
         except json.JSONDecodeError:
-            logger.warning("[JinaSum] JSON解析失败，尝试使用更健壮的正则表达式提取")
+            logger.warning("[JinaSum] JSON解析失败，尝试使用正则表达式提取")
             try:
-                # 使用正则表达式提取 Summary, Tags, Title, Author
-                summary_match = re.search(r"(?:Summary:\s*(.+?)(?:\n\n|$))|(?:\"Summary\":\s*\"(.+?)\"(?:,|})|(?<=\"Content\":\s*{.*\"Summary\":\s*\"(.+?)\"))", text, re.DOTALL)
-                tags_match = re.search(r"(?:Tags:\s*(.+?)(?:\n|$))|(?:\"Tags\":\s*\"(.+?)\"(?:,|})|(?<=\"Content\":\s*{.*\"Tags\":\s*\"(.+?)\"))", text, re.DOTALL)
-                title_match = re.search(r"(?:Title:\s*(.+?)(?:\n|$))|(?:\"Title\":\s*\"(.+?)\"(?:,|})|(?<=\"Title\":\s*\"(.+?)\"))", text, re.DOTALL)
-                author_match = re.search(r"(?:Author:\s*(.+?)(?:\n|$))|(?:\"Author\":\s*\"(.+?)\"(?:,|})|(?<=\"Author\":\s*\"(.+?)\"))", text, re.DOTALL)
-                keypoints_match = re.findall(r'(?:(?:\d+\.\s*([^\n]+))|(?<=\"Keypoints\":\s*\[)(?:\\?"([^\\"]+)\\?"(?:,|\s*\])))', text,re.DOTALL)
+            # 使用更简单的正则表达式模式
+                patterns = {
+                    'summary': r'["\']?Summary["\']?\s*[:：]\s*["\']?([^"\'}\n]+)["\']?',
+                    'tags': r'["\']?Tags["\']?\s*[:：]\s*["\']?([^"\'}\n]+)["\']?',
+                    'title': r'["\']?Title["\']?\s*[:：]\s*["\']?([^"\'}\n]+)["\']?', 
+                    'author': r'["\']?Author["\']?\s*[:：]\s*["\']?([^"\'}\n]+)["\']?',
+                    'keypoints': r'(?:\d+\.\s*([^\n]+)|["\']?Keypoints["\']?\s*[:：]\s*\[(.*?)\])'
+                }
+            
+                results = {}
+                for key, pattern in patterns.items():
+                    match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                    if match:
+                        if key == 'keypoints':
+                            # 处理关键点列表
+                            if match.group(2):  # JSON数组格式
+                                points = re.findall(r'["\']([^"\']+)["\']', match.group(2))
+                            else:  # 普通列表格式
+                                points = re.findall(r'\d+\.\s*([^\n]+)', text)
+                            results[key] = [clean_text(p) for p in points if p.strip()]
+                        else:
+                            results[key] = clean_text(match.group(1))
+                    else:
+                        results[key] = "未提供" if key == 'author' else ("无标题" if key == 'title' else []) if key == 'keypoints' else "暂无内容"
 
-
-                summary = clean_text((summary_match.group(1) or summary_match.group(2) or summary_match.group(3) or "暂无总结").strip()) if summary_match else "暂无总结"
-                tags = clean_text((tags_match.group(1) or tags_match.group(2) or tags_match.group(3) or "无标签").strip()) if tags_match else "无标签"
-                title = clean_text((title_match.group(1) or title_match.group(2) or title_match.group(3) or "无标题").strip()) if title_match else "无标题"
-                author = clean_text((author_match.group(1) or author_match.group(2) or author_match.group(3) or "未知作者").strip()) if author_match else "未知作者"
-
-                 # 提取关键要点
-                keypoints = [clean_text(point.strip()) for match in keypoints_match for point in match if point]
-
-
-
-                 # 构建返回的字典
+                # 构建返回的字典结构
                 extracted_data = {
-                  "Content": {
-                        "Summary": summary,
-                        "Keypoints": keypoints,
-                        "Tags": tags
+                    "Content": {
+                        "Summary": results['summary'],
+                        "Keypoints": results['keypoints'],
+                        "Tags": results['tags']
                     },
-                   "Title":title,
-                   "Author":author,
-                   "Date":str(time.strftime("%Y-%m-%d", time.localtime()))
+                    "Title": results['title'],
+                    "Author": results['author'],
+                    "Date": str(time.strftime("%Y-%m-%d", time.localtime()))
                 }
 
                 return extracted_data
 
-
             except Exception as e:
-                logger.error(f"[JinaSum] 正则表达式提取失败: {e}")
-                return None
+                logger.error(f"[JinaSum] 正则表达式提取失败: {str(e)}")
+                # 返回基本结构而不是None，确保后续处理不会出错
+                return {
+                    "Content": {
+                        "Summary": "内容解析失败",
+                        "Keypoints": [],
+                        "Tags": "无标签"
+                    },
+                    "Title": "解析失败",
+                    "Author": "未知",
+                    "Date": str(time.strftime("%Y-%m-%d", time.localtime()))
+                }
 
     def _check_url(self, target_url: str):
         stripped_url = target_url.strip()
