@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import base64
 from io import BytesIO
 from PIL import Image
+import shutil
 
 import plugins
 from bridge.context import ContextType
@@ -27,7 +28,7 @@ from plugins import *
     hidden=False,
     enabled=True,
     desc="聊天记录总结助手",
-    version="1.2",
+    version="1.4",
     author="lanvent",
 )
 class Summary(Plugin):
@@ -76,45 +77,39 @@ class Summary(Plugin):
         super().__init__()
         try:
             self.config = self._load_config()
-            # 加载配置，使用默认值
-            self.open_ai_api_base = self.config.get("open_ai_api_base", self.open_ai_api_base)
-            self.open_ai_api_key = self.config.get("open_ai_api_key", "")
             
-            # 验证 API 密钥
-            if not self.open_ai_api_key:
-                logger.error("[Summary] OpenAI API 密钥未在配置中找到")
-                raise Exception("OpenAI API 密钥未配置")
-                
-            self.open_ai_model = self.config.get("open_ai_model", self.open_ai_model)
-            # 修改变量名
-            self.summary_max_tokens = self.config.get("max_tokens", self.summary_max_tokens)
-            self.input_max_tokens_limit = self.config.get("max_input_tokens", self.input_max_tokens_limit)
-
-            #加载提示词，优先读取配置，否则用默认的
-            self.default_summary_prompt = self.config.get("default_summary_prompt", self.default_summary_prompt)
-            self.default_image_prompt = self.config.get("default_image_prompt", self.default_image_prompt)
-            # 新增 chunk_max_tokens 从 config 加载，默认值是 3600
-            self.chunk_max_tokens = self.config.get("max_tokens_persession", 3600)
-
             #加载多模态LLM配置
             self.multimodal_llm_api_base = self.config.get("multimodal_llm_api_base", "")
             self.multimodal_llm_model = self.config.get("multimodal_llm_model", "")
             self.multimodal_llm_api_key = self.config.get("multimodal_llm_api_key", "")
             
-             # 验证多模态LLM配置
-            if self.multimodal_llm_api_base and not self.multimodal_llm_api_key :
+            # 验证多模态LLM配置
+            if self.multimodal_llm_api_base and not self.multimodal_llm_api_key:
                 logger.error("[Summary] 多模态LLM API 密钥未在配置中找到")
                 raise Exception("多模态LLM API 密钥未配置")
 
+            # 加载提示词，优先读取配置，否则用默认的
+            config_summary_prompt = self.config.get("default_summary_prompt")
+            self.default_summary_prompt = config_summary_prompt if config_summary_prompt else self.default_summary_prompt
+            
+            config_image_prompt = self.config.get("default_image_prompt")
+            self.default_image_prompt = config_image_prompt if config_image_prompt else self.default_image_prompt
 
+            # 加载其他配置
+            self.summary_max_tokens = self.config.get("summary_max_tokens", 8000)
+            self.input_max_tokens_limit = self.config.get("input_max_tokens_limit", 160000)
+            self.chunk_max_tokens = self.config.get("chunk_max_tokens", 16000)
+            
             # 初始化数据库
             curdir = os.path.dirname(__file__)
             db_path = os.path.join(curdir, "chat.db")
             self.conn = sqlite3.connect(db_path, check_same_thread=False)
             self._init_database()
 
-             # 初始化线程池
-            self.executor = ThreadPoolExecutor(max_workers=5) #你可以根据实际情况调整线程池大小
+            # 初始化线程池
+            self.executor = ThreadPoolExecutor(max_workers=5)
+            self.pending_tasks = 0
+            self.max_pending_tasks = 20
 
             # 注册事件处理器
             self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
@@ -184,61 +179,45 @@ class Summary(Plugin):
             'max_tokens': self.summary_max_tokens #修改变量名
         }
 
-    def _chat_completion(self, content, custom_prompt=None, prompt_type="summary"):
+    def _chat_completion(self, content, e_context, custom_prompt=None, prompt_type="summary"):
         """
-        调用 OpenAI 聊天补全 API
+        准备总结提示词并传递给下一个插件处理
         
         :param content: 需要总结的聊天内容
-        :param custom_prompt: 可选的自定义 prompt，用于替换默认 prompt
-        :param prompt_type:  定义使用哪一个类型的prompt，可选值 summary，image
-        :return: 总结后的文本
+        :param e_context: 事件上下文
+        :param custom_prompt: 可选的自定义 prompt
+        :param prompt_type: 定义使用哪一个类型的prompt，可选值 summary，image
+        :return: None，由下一个插件处理
         """
         try:
             # 使用默认 prompt
             if prompt_type == "summary":
-              prompt_to_use = self.default_summary_prompt
+                prompt_to_use = self.default_summary_prompt
             elif prompt_type == "image":
                 prompt_to_use = self.default_image_prompt
             else:
-                prompt_to_use = self.default_summary_prompt #默认选择 summary 类型
+                prompt_to_use = self.default_summary_prompt  # 默认选择 summary 类型
+
             # 使用 custom_prompt，如果 custom_prompt 为空，则替换为 "无"
             replacement_prompt = custom_prompt if custom_prompt else "无"
             prompt_to_use = prompt_to_use.replace("{custom_prompt}", replacement_prompt)
-
             
-            # 增加日志：打印完整提示词
-            logger.info(f"[Summary] 完整提示词: {prompt_to_use}")
+            # 构造完整的提示词
+            full_prompt = f"{prompt_to_use}\n\n'''{content}'''"
             
-            # 准备完整的载荷
-            payload = {
-                "model": self.open_ai_model,
-                "messages": [
-                    {"role": "system", "content": prompt_to_use},
-                    {"role": "user", "content": content}
-                ],
-                "max_tokens": self.summary_max_tokens #修改变量名
-            }
+            # 修改 context 内容，传递给下一个插件处理
+            e_context['context'].type = ContextType.TEXT
+            e_context['context'].content = full_prompt
             
-            # 获取 OpenAI API URL 和请求头
-            url = self._get_openai_chat_url()
-            headers = self._get_openai_headers()
+            # 继续传递给下一个插件处理
+            e_context.action = EventAction.CONTINUE
+            logger.debug(f"[Summary] 传递内容给下一个插件处理: length={len(full_prompt)}")
+            return
             
-            # 发送 API 请求
-            response = requests.post(url, headers=headers, json=payload)
-            
-            # 检查并处理响应
-            if response.status_code == 200:
-                result = response.json()
-                summary = result['choices'][0]['message']['content'].strip()
-                return summary
-            else:
-                logger.error(f"[Summary] OpenAI API 错误: {response.text}")
-                return f"总结失败：{response.text}"
-        
         except Exception as e:
             logger.error(f"[Summary] 总结生成失败: {e}")
             return f"总结失败：{str(e)}"
-    
+
     def _multimodal_completion(self, api_key, image_path, text_prompt, model="GLM-4V-Flash", detail="low"):
         """
         调用多模态 API 进行图片理解和文本生成。
@@ -285,29 +264,39 @@ class Summary(Plugin):
             response = requests.post(api_url, headers=headers, json=payload)
             response.raise_for_status()  # 检查 HTTP 错误
 
+            # 添加详细的错误日志
+            if response.status_code != 200:
+                logger.error(f"[Summary] API 请求失败: 状态码 {response.status_code}")
+                logger.error(f"[Summary] 响应内容: {response.text}")
+                return None
+
             json_response = response.json()
+            logger.debug(f"[Summary] API 响应: {json_response}")  # 添加调试日志
 
             # 4. 提取文本回复
             if 'choices' in json_response and json_response['choices']:
                 return json_response['choices'][0]['message']['content']
             else:
-                print(f"API 响应中没有找到文本回复: {json_response}")
+                logger.error(f"[Summary] API 响应中没有找到文本回复: {json_response}")
                 return None
 
-
         except requests.exceptions.RequestException as e:
-            print(f"请求 API 发生错误: {e}")
+            logger.error(f"[Summary] 请求 API 发生错误: {e}")
+            logger.error(f"[Summary] 请求 URL: {api_url}")
+            logger.error(f"[Summary] 请求头: {headers}")
+            logger.error(f"[Summary] 请求体: {payload}")
             return None
         except json.JSONDecodeError as e:
-            print(f"JSON 解析错误: {e}")
+            logger.error(f"[Summary] JSON 解析错误: {e}")
+            logger.error(f"[Summary] 响应内容: {response.text}")
             return None
         except FileNotFoundError as e:
-            print(f"图片文件找不到: {e}")
+            logger.error(f"[Summary] 图片文件找不到: {e}")
             return None
         except Exception as e:
-            print(f"发生未知错误: {e}")
+            logger.error(f"[Summary] 发生未知错误: {e}")
+            logger.error(f"[Summary] 错误类型: {type(e)}")
             return None
-
 
     def _resize_and_encode_image(self, image_path):
         """将图片调整大小并编码为 base64"""
@@ -354,6 +343,13 @@ class Summary(Plugin):
         """处理接收到的消息"""
         context = e_context['context']
         cmsg : ChatMessage = e_context['context']['msg']
+        
+        # 检查消息内容是否需要过滤
+        content = context.content
+        if (('#' in content or '$' in content) and len(content) < 50):
+            logger.debug(f"[Summary] 消息被过滤: {content}")
+            return
+        
         username = None
         session_id = cmsg.from_user_id
         if self.config.get('channel_type', 'wx') == 'wx' and cmsg.from_user_nickname is not None:
@@ -394,17 +390,41 @@ class Summary(Plugin):
 
     def _process_image_async(self, session_id, msg_id, username, image_path, create_time):
         """使用线程池异步处理图片消息"""
+        if self.pending_tasks >= self.max_pending_tasks:
+            logger.warning("[Summary] 图片处理队列已满，丢弃请求")
+            return
+        
+        self.pending_tasks += 1
         future = self.executor.submit(self._process_image, session_id, msg_id, username, image_path, create_time)
         future.add_done_callback(self._handle_image_result)
+        future.add_done_callback(lambda x: setattr(self, 'pending_tasks', self.pending_tasks - 1))
 
     def _process_image(self, session_id, msg_id, username, image_path, create_time):
         """处理图片消息，调用多模态LLM API"""
         try:
-            base64_image = self._resize_and_encode_image(image_path)
+            # 确保图片文件存在
+            if not os.path.exists(image_path):
+                error_msg = "图片处理失败：文件不存在"
+                logger.error(f"[Summary] {error_msg}")
+                return error_msg
+
+            # 复制图片到临时文件以避免并发访问问题
+            temp_image_path = f"{image_path}.{time.time()}.tmp"
+            try:
+                shutil.copy2(image_path, temp_image_path)
+                base64_image = self._resize_and_encode_image(temp_image_path)
+            finally:
+                # 清理临时文件
+                if os.path.exists(temp_image_path):
+                    try:
+                        os.remove(temp_image_path)
+                    except Exception as e:
+                        logger.warning(f"[Summary] 清理临时文件失败: {e}")
+
             if not base64_image:
-                    error_msg = "图片处理失败：无法处理或图片太大"
-                    logger.error(f"[Summary] {error_msg}")
-                    return error_msg #返回错误信息
+                error_msg = "图片处理失败：无法处理或图片太大"
+                logger.error(f"[Summary] {error_msg}")
+                return error_msg
 
             text_content = self._multimodal_completion(self.multimodal_llm_api_key, image_path, self.default_image_prompt, model=self.multimodal_llm_model)
 
@@ -417,8 +437,10 @@ class Summary(Plugin):
                     logger.error(f"[Summary] {error_msg}")
                     return error_msg #返回错误信息
             else:
-                    # 将识别出的文本内容保存到数据库
-                    self._insert_record(session_id, msg_id, username, f"[图片描述]{text_content}", str(ContextType.TEXT), create_time, 0) # 这里默认识别内容没有触发
+                    # 将识别出的文本内容保存到数据库，并记录日志
+                    content = f"[图片描述]{text_content}"
+                    self._insert_record(session_id, msg_id, username, content, str(ContextType.TEXT), create_time, 0)
+                    logger.info(f"[Summary] 图片识别成功并保存到数据库 - 会话ID: {session_id}, 用户: {username}, 内容: {content}")
                     return True # 返回 True 表示成功
         except Exception as e:
             error_msg = f"识图失败：未知错误 {str(e)}"
@@ -524,34 +546,52 @@ class Summary(Plugin):
     def _parse_summary_command(self, command_parts):
         """
         解析总结命令，支持以下格式：
-        $总结 100                   # 最近100条消息
-        $总结 -7200 100             # 过去2小时内的消息，最多100条
-        $总结 -86400                # 过去24小时内的消息
-        $总结 100 自定义指令         # 最近100条消息，使用自定义指令
-        $总结 -7200 100 自定义指令   # 过去2小时内的消息，最多100条，使用自定义指令
+        $总结 100                      # 最近100条消息
+        $总结 -2h 100                 # 过去2小时内的消息，最多100条
+        $总结 -24h                    # 过去24小时内的消息
+        $总结 100 自定义指令            # 最近100条消息，使用自定义指令
+        $总结 -2h 100 自定义指令       # 过去2小时内的消息，最多100条，使用自定义指令
+        $总结 @群名称 密码 100          # 指定群的最近100条消息（需要密码验证）
+        $总结 @用户名 密码 -2h          # 指定用户过去2小时的消息（需要密码验证）
         """
         current_time = int(time.time())
-        custom_prompt = ""  # 初始化为空字符串
+        custom_prompt = ""
         start_timestamp = 0
-        limit = 9999  # 默认最大消息数
+        limit = 9999
+        target_session = None
+        password = None  # 新增：密码字段
 
-        # 处理时间戳和消息数量
-        for part in command_parts:
-            if part.startswith('-') and part[1:].isdigit():
-                # 负数时间戳：表示从过去多少秒开始
+        # 处理命令参数
+        i = 0
+        while i < len(command_parts):
+            part = command_parts[i]
+            if part.startswith('@'):
+                target_session = part[1:]  # 去掉@符号
+                # 检查下一个参数是否为密码
+                if i + 1 < len(command_parts):
+                    password = command_parts[i + 1]
+                    i += 1  # 跳过密码参数
+            elif part.startswith('-') and part.endswith('h'):
+                try:
+                    hours = int(part[1:-1])
+                    start_timestamp = current_time - (hours * 3600)
+                except ValueError:
+                    pass
+            elif part.startswith('-') and part[1:].isdigit():
                 start_timestamp = current_time + int(part)
             elif part.isdigit():
-                # 如果是正整数，判断是消息数量还是时间戳
-                if int(part) > 1000:  # 假设大于1000的数字被视为时间戳
+                if int(part) > 1000:
                     start_timestamp = int(part)
                 else:
                     limit = int(part)
             else:
-                # 非数字部分被视为自定义指令
-                custom_prompt += part + " "
+                # 如果不是密码参数，则添加到自定义提示中
+                if not (target_session and password == part):
+                    custom_prompt += part + " "
+            i += 1
 
         custom_prompt = custom_prompt.strip()
-        return start_timestamp, limit, custom_prompt
+        return start_timestamp, limit, custom_prompt, target_session, password
 
     def on_handle_context(self, e_context: EventContext):
         """处理上下文，进行总结"""
@@ -562,37 +602,75 @@ class Summary(Plugin):
         if clist[0].startswith(trigger_prefix):
             
             # 解析命令
-            start_time, limit, custom_prompt = self._parse_summary_command(clist[1:])
+            start_time, limit, custom_prompt, target_session, password = self._parse_summary_command(clist[1:])
 
+            # 如果指定了目标会话，先检查是否在群聊中
+            if target_session:
+                if e_context['context'].get("isgroup", False):
+                    reply = Reply(ReplyType.ERROR, "指定会话总结功能仅支持私聊使用")
+                    e_context["reply"] = reply
+                    e_context.action = EventAction.BREAK_PASS
+                    return
+                
+                # 验证密码
+                config_password = self.config.get('summary_password', '')
+                if not config_password:
+                    reply = Reply(ReplyType.ERROR, "管理员未设置访问密码，无法使用指定会话功能")
+                    e_context["reply"] = reply
+                    e_context.action = EventAction.BREAK_PASS
+                    return
+                if not password or password != config_password:
+                    reply = Reply(ReplyType.ERROR, "访问密码错误")
+                    e_context["reply"] = reply
+                    e_context.action = EventAction.BREAK_PASS
+                    return
 
             msg:ChatMessage = e_context['context']['msg']
             session_id = msg.from_user_id
             if self.config.get('channel_type', 'wx') == 'wx' and msg.from_user_nickname is not None:
                 session_id = msg.from_user_nickname
+
+            # 使用目标会话ID
+            if target_session:
+                session_id = target_session
+
             records = self._get_records(session_id, start_time, limit)
             
             if not records:
-                reply = Reply(ReplyType.ERROR, "没有找到聊天记录")
+                reply = Reply(ReplyType.ERROR, f"没有找到{'指定会话的' if target_session else ''}聊天记录")
                 e_context["reply"] = reply
                 e_context.action = EventAction.BREAK_PASS
                 return
             
-            summarys = self._split_messages_to_summarys(records, custom_prompt)
-            if not summarys:
-                reply = Reply(ReplyType.ERROR, "总结失败")
+            # 准备聊天记录内容
+            query = self._check_tokens(records)
+            if not query:
+                reply = Reply(ReplyType.ERROR, "聊天记录为空")
                 e_context["reply"] = reply
                 e_context.action = EventAction.BREAK_PASS
                 return
+
+            # 发送处理中的提示
+            processing_reply = Reply(ReplyType.TEXT, "🎉正在为您生成总结，请稍候...")
+            e_context["channel"].send(processing_reply, e_context["context"])
             
-            result = "\n\n".join(summarys)
-            reply = Reply(ReplyType.TEXT, result)
-            e_context["reply"] = reply
-            e_context.action = EventAction.BREAK_PASS
+            # 调用总结功能并传递给下一个插件
+            return self._chat_completion(query, e_context, custom_prompt, "summary")
 
     def get_help_text(self, verbose = False, **kwargs):
         help_text = "聊天记录总结插件。\n"
         if not verbose:
             return help_text
         trigger_prefix = self.config.get('plugin_trigger_prefix', "$")
-        help_text += f"使用方法:输入\"{trigger_prefix}总结 最近消息数量\"，我会帮助你总结聊天记录。\n例如：\"{trigger_prefix}总结 100\"，我会总结最近100条消息。\n\n你也可以直接输入\"{trigger_prefix}总结前99条信息\"或\"{trigger_prefix}总结3小时内的最近10条消息\"\n我会尽可能理解你的指令。"
+        help_text += f"""使用方法:
+1. 总结当前会话:
+   - {trigger_prefix}总结 100 (总结最近100条消息)
+   - {trigger_prefix}总结 -2h (总结最近2小时消息)
+   - {trigger_prefix}总结 -24h 100 (总结24小时内最近100条消息)
+
+2. 总结指定会话(需要密码):
+   - {trigger_prefix}总结 @群名称 密码 100 (总结指定群最近100条消息)
+   - {trigger_prefix}总结 @用户名 密码 -2h (总结指定用户最近2小时消息)
+
+你也可以添加自定义指令，如：{trigger_prefix}总结 @群名称 密码 100 帮我找出重要的会议内容"""
         return help_text
