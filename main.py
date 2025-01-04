@@ -28,7 +28,7 @@ from plugins import *
     hidden=False,
     enabled=True,
     desc="聊天记录总结助手",
-    version="1.4",
+    version="2.0",
     author="lanvent",
 )
 class Summary(Plugin):
