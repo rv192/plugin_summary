@@ -699,7 +699,7 @@ class Summary(Plugin):
         
         # 检查是否包含触发命令
         is_trigger = False
-        if clist[0].startswith(trigger_prefix):
+        if clist[0] == f"{trigger_prefix}总结":  # 严格匹配 "$总结"
             # 使用$前缀触发
             is_trigger = True
         else:
