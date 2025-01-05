@@ -751,15 +751,21 @@ class Summary(Plugin):
                 return
 
         msg:ChatMessage = e_context['context']['msg']
-        session_id = msg.from_user_id
-        if self.config.get('channel_type', 'wx') == 'wx' and msg.from_user_nickname is not None:
-            session_id = msg.from_user_nickname
-
-        # 使用目标会话ID
+        
+        # 根据是否是群聊选择不同的session_id
+        if e_context['context'].get("isgroup", False):
+            session_id = self._get_group_name(msg.from_user_id)  # 使用群名称
+        else:
+            session_id = self._get_user_nickname(msg.from_user_id)  # 使用用户昵称
+        
+        # 使用目标会话ID（如果有的话）
         if target_session:
             session_id = target_session
 
+        # 添加调试日志
+        logger.debug(f"[Summary] 正在查询聊天记录 - session_id: {session_id}, start_time: {start_time}, limit: {limit}")
         records = self._get_records(session_id, start_time, limit)
+        logger.debug(f"[Summary] 查询到 {len(records) if records else 0} 条记录")
         
         if not records:
             reply = Reply(ReplyType.ERROR, f"没有找到{'指定会话的' if target_session else ''}聊天记录")
