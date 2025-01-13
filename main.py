@@ -28,7 +28,7 @@ from plugins import *
     hidden=False,
     enabled=True,
     desc="聊天记录总结助手",
-    version="2.0",
+    version="2.1",
     author="lanvent",
 )
 class Summary(Plugin):
@@ -678,6 +678,13 @@ class Summary(Plugin):
         custom_prompt = custom_prompt.strip()
         return start_timestamp, limit, custom_prompt, target_session, password
 
+    def _validate_session_exists(self, session_id):
+        """验证会话是否存在"""
+        c = self.conn.cursor()
+        c.execute("SELECT COUNT(*) FROM chat_records WHERE sessionid=?", (session_id,))
+        count = c.fetchone()[0]
+        return count > 0
+
     def on_handle_context(self, e_context: EventContext):
         """处理上下文，进行总结"""
         context = e_context['context']
@@ -708,24 +715,22 @@ class Summary(Plugin):
             # 2. 消息为"@xxx 总结"格式
             # 3. 消息为"总结 xxx"格式
             content_stripped = content.strip()
-            if content_stripped.startswith("总结") or \
-               (content_stripped.startswith("@") and "总结" in content_stripped.split(" ", 1)[1].strip().split(" ", 1)[0]) or \
-               any(part.strip() == "总结" for part in content_stripped.split(" ", 1)):
+            
+            # 修复@开头但没有后续内容的情况
+            if content_stripped.startswith("@"):
+                parts = content_stripped.split(" ", 1)
+                # 只有当@后面有内容，且内容中包含"总结"时才触发
+                if len(parts) > 1 and "总结" in parts[1].strip().split(" ", 1)[0]:
+                    is_trigger = True
+                    content = parts[1].strip()
+            # 检查其他情况
+            elif content_stripped.startswith("总结") or \
+                 any(part.strip() == "总结" for part in content_stripped.split(" ", 1)):
                 is_trigger = True
-                # 如果消息以"@"开头，移除@部分
-                if content_stripped.startswith("@"):
-                    parts = content_stripped.split(" ", 1)
-                    if len(parts) > 1:
-                        content = parts[1].strip()
-                    else:
-                        content = ""
-                # 将"总结"关键词转换为命令格式
-                content = content.replace("总结", f"{trigger_prefix}总结", 1)  # 只替换第一个"总结"
-                clist = content.split()
         
         if not is_trigger:
             return
-        
+
         # 解析命令
         start_time, limit, custom_prompt, target_session, password = self._parse_summary_command(clist[1:])
 
@@ -746,6 +751,13 @@ class Summary(Plugin):
                 return
             if not password or password != config_password:
                 reply = Reply(ReplyType.ERROR, "访问密码错误")
+                e_context["reply"] = reply
+                e_context.action = EventAction.BREAK_PASS
+                return
+            
+            # 验证目标会话是否存在
+            if not self._validate_session_exists(target_session):
+                reply = Reply(ReplyType.ERROR, f"未找到指定的会话 '{target_session}'，请检查名称是否正确")
                 e_context["reply"] = reply
                 e_context.action = EventAction.BREAK_PASS
                 return
