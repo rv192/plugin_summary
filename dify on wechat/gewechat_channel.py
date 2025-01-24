@@ -127,10 +127,19 @@ class GeWeChatChannel(ChatChannel):
             for i, msg in enumerate(split_messages):
                 self.client.post_text(self.app_id, receiver, msg, "")
                 logger.info("[gewechat] Do send text to {}: {}".format(receiver, msg))
-                # 如果不是最后一段消息，则延时 3 到 8 秒之间的随机时间
+                # 根据消息长度计算延时
                 if i < len(split_messages) - 1:
-                    delay = random.uniform(3.0, 8.0)  # 生成 3 到 8 之间的随机浮点数
-                    time.sleep(delay)  # 添加随机延时
+                    base_delay = 1.3  # 基础延时（秒）
+                    length_factor = 0.1  # 每字符增加的延时（秒）
+                    max_delay = 15.0  # 最大延时（秒）
+
+                    delay = base_delay + (len(msg) * length_factor)
+                    delay = min(delay, max_delay) # 确保延时不超过最大值
+                    delay = max(delay, 1.35) # 确保延时不小于最小值
+
+                    # 添加一些随机性
+                    delay += random.uniform(0, 3)
+                    time.sleep(delay)  # 添加延时
         elif reply.type == ReplyType.VOICE:
             try:
                 content = reply.content
