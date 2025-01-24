@@ -128,9 +128,9 @@ class GeWeChatChannel(ChatChannel):
                 self.client.post_text(self.app_id, receiver, msg, "")
                 logger.info("[gewechat] Do send text to {}: {}".format(receiver, msg))
                 # 根据消息长度计算延时
-                if i < len(split_messages) - 1:
+                if i > 0 and i < len(split_messages) - 1:
                     base_delay = 1.3  # 基础延时（秒）
-                    length_factor = 0.1  # 每字符增加的延时（秒）
+                    length_factor = 0.3  # 每字符增加的延时（秒）
                     max_delay = 15.0  # 最大延时（秒）
 
                     delay = base_delay + (len(msg) * length_factor)
