@@ -94,7 +94,7 @@ class Summary(Plugin):
             self.default_summary_prompt = self.config.get("default_summary_prompt", self.default_summary_prompt)
             self.default_image_prompt = self.config.get("default_image_prompt", self.default_image_prompt)
             # 新增 chunk_max_tokens 从 config 加载，默认值是 3600
-            self.chunk_max_tokens = self.config.get("max_tokens_persession", 3600)
+            #self.chunk_max_tokens = self.config.get("max_tokens_persession", 3600)
 
             #加载多模态LLM配置
             self.multimodal_llm_api_base = self.config.get("multimodal_llm_api_base", "")
@@ -448,29 +448,28 @@ class Summary(Plugin):
         total_length = 0
         # 修改变量名
         max_input_chars = self.input_max_tokens_limit * 4  # 粗略估计：1个 token 约等于 4 个字符
-        
+
         # 记录已经是倒序的（最新的在前），直接处理
         for record in records:
             username = record[2] or ""  # 处理空用户名
             content = record[3] or ""   # 处理空内容
             timestamp = record[5]
             is_triggered = record[6]
-            
+
             # 将时间戳转换为可读格式
             time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
-            
-            if record[4] in [str(ContextType.IMAGE),str(ContextType.VOICE)]:
+
+            if record[4] in [str(ContextType.IMAGE), str(ContextType.VOICE)]:
                 content = f"[{record[4]}]"
-            
+
             sentence = f'[{time_str}] {username}: "{content}"'
             if is_triggered:
                 sentence += " <T>"
-                
+
             # 检查添加此记录后是否会超出限制
-            if total_length + len(sentence) + 2 > max_input_chars:  # 2 是换行符的长度
+            if total_length + len(sentence) + 2 > self.input_max_tokens_limit * 4:  # 2 是换行符的长度
                 logger.info(f"[Summary] 输入长度限制已达到 {total_length} 个字符")
                 break
-                
             messages.append(sentence)
             total_length += len(sentence) + 2
 
@@ -481,44 +480,13 @@ class Summary(Plugin):
     def _split_messages_to_summarys(self, records, custom_prompt="", max_summarys=10):
         """将消息分割成块并总结每个块"""
         summarys = []
-        count = 0
-
-        while len(records) > 0 and len(summarys) < max_summarys:
-            # 修改变量名
-            query = self._check_tokens(records) # 移除 max_tokens
-            if not query:
-                break
-
+        query = self._check_tokens(records)
+        if query:
             try:
                 result = self._chat_completion(query, custom_prompt, prompt_type="summary")
                 summarys.append(result)
-                count += 1
             except Exception as e:
                 logger.error(f"[Summary] 总结失败: {e}")
-                break
-
-            # 修改变量名，使用字符长度判断
-            query_chars_len = len(self._check_tokens(records))
-            if query_chars_len > (self.chunk_max_tokens*4):
-               records_temp = self._check_tokens(records)[:(self.chunk_max_tokens*4)] # 截取字符
-               
-               #找到截取字符对应的记录条数
-               record_count = 0
-               temp_records = []
-               for record in records:
-                  record_content = f'[{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(record[5]))}] {record[2] or ""}: "{record[3] or ""}"'
-                  if record[6]:
-                        record_content += " <T>"
-                  
-                  if len("\n\n".join(temp_records+[record_content])) <= (self.chunk_max_tokens*4):
-                    temp_records.append(record_content)
-                    record_count = record_count + 1
-                  else:
-                      break
-               
-               records = records[record_count:]
-            else:
-                break
         return summarys
 
     def _parse_summary_command(self, command_parts):
