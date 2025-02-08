@@ -64,20 +64,8 @@ geox-url:
 # 参考
 # https://hokoory.github.io/clash-mate-doc/config/
 # https://wiki.metacubex.one/config/proxies/transport/
-proxies:
-  - name: "🇸🇬ali-sing"
-    type: trojan
-    server: route.fueze.cn
-    port: 443
-    password: 4
-    cipher: auto
-    tls: true
-    #skip-cert-verify: true
-    network: ws
-    ws-opts:
-      path: /tech
-      headers:
-        Host: route.fueze.cn
+# proxies:
+#  - name: "🇸🇬ali-sing"
 
 proxy-groups:
   - name: "🪥自动选路"
@@ -222,7 +210,6 @@ rules:
   - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇸🇬PROXY
   - DOMAIN-SUFFIX,lobehub.com,🇸🇬PROXY
   - DOMAIN-SUFFIX,sealos.io,🇸🇬PROXY
-  - DOMAIN-SUFFIX,gitea.fueze.cn,DIRECT
   
   - GEOIP,CN,🎯 全球直连
   - GEOIP,HK,🎯 全球直连
