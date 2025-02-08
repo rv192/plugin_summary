@@ -26,8 +26,8 @@ allow-lan: false
 mode: rule
 log-level: warning
 
-hosts:
-  'gitea.fueze.cn': 192.168.0.225
+# hosts:
+#  'gitea.fueze.cn': 192.168.0.225
 
 # https://oneclash.githubrowcontent.com/2024/12/20241217.yaml
 # https://www.shareclash.com/jddy/20241217-clash.yaml
