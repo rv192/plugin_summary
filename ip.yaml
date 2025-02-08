@@ -76,8 +76,6 @@ proxy-groups:
     exclude-filter: "(?i)台湾|日本|韩国|TWN|JPN|KOR"
     use:
       - mlxsub
-      - wenpblog
-      - nodefree
   - name: "🚾手动选路"
     type: select
     use:
@@ -95,7 +93,6 @@ proxy-groups:
       - "🪥自动选路"
       - "🚾手动选路"
       - "📚顺丰线路"
-      - "🇸🇬ali-sing"
       - DIRECT
   - name: 🍃 应用净化
     type: select
