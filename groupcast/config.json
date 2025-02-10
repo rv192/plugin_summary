@@ -1,0 +1,19 @@
+{
+  "测试共享群": {          
+    "group_name_keywords": [
+      "测试1",
+      "测试2"
+    ],
+    "enable": true
+  },
+  "实验共享群": {          
+    "group_name_keywords": [
+      "小白鼠们",
+      "大白鼠们"
+    ],
+    "enable": true
+  },
+  "sync_interval": 1, 
+  "ignore_at_bot_msg": false,
+  "is_prefix_for_media": false
+}
