@@ -242,7 +242,7 @@ rule-providers:
   # 从 URL 加载白名单
   whitelist:
     type: http
-    url: "https://your-git-repo/whitelist.txt"  # 替换为你的 Git 仓库中 whitelist.txt 文件的 URL
+    url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"  # 替换为你的 Git 仓库中 whitelist.txt 文件的 URL
     format: plain
     interval: 86400  # 可选：设置更新间隔（秒）
 
@@ -254,10 +254,7 @@ rules:
 
   # 全局强制直连白名单 (确保这条规则在其他规则之前)
   - RULE-SET,whitelist,DIRECT
-
-  # 漏网之鱼，优先级最高
-  - MATCH,🐟 漏网之鱼
-
+  
   # proxy
   - DOMAIN-SUFFIX,github.com,🇸🇬PROXY
 
