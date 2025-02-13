@@ -99,7 +99,7 @@ proxy-groups:
     type: select
     proxies:
       - "US-72live.com"
-
+      
   - name: "Papertool"  # 纸飞机，最高优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
@@ -146,10 +146,8 @@ proxy-groups:
       - "Papertool"  # 优先使用纸飞机
       - "shunfeng" # 其次顺丰
       - "mlxsub"  # 最后使用 MLXSUB
-      - "固定IP" # 手动指定IP
       - "AI站点代理"
-      - "🚾手动选路"
-
+      
   - name: 🍃 应用净化
     type: select
     proxies:
