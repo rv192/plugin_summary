@@ -94,7 +94,7 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
-      - "🇸🇬PROXY"
+      - "🇺🇳全球优选"
   - name: "固定IP"  # 手动选择，手动处理
     type: select   
     proxies:
@@ -137,7 +137,7 @@ proxy-groups:
       - shunfeng
       - mlxsub
 
-  - name: "🇸🇬PROXY"  # 主代理组
+  - name: "🇺🇳全球优选"  # 主代理组
     type: url-test  # 使用 url-test 策略
     url: http://www.gstatic.com/generate_204
     interval: 300
@@ -159,7 +159,7 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
-      - "🇸🇬PROXY"
+      - "🇺🇳全球优选"
 
 
 
@@ -256,20 +256,20 @@ rules:
   - RULE-SET,whitelist,DIRECT
   
   # proxy
-  - DOMAIN-SUFFIX,github.com,🇸🇬PROXY
+  - DOMAIN-SUFFIX,github.com,🇺🇳全球优选
 
   # RULE-SET
   - RULE-SET,icloud,🎯 全球直连
   - RULE-SET,apple,🎯 全球直连
 
-  - RULE-SET,proxy,🇸🇬PROXY
-  - RULE-SET,gfw,🇸🇬PROXY
-  - RULE-SET,google,🇸🇬PROXY
-  - RULE-SET,greatfire,🇸🇬PROXY
+  - RULE-SET,proxy,🇺🇳全球优选
+  - RULE-SET,gfw,🇺🇳全球优选
+  - RULE-SET,google,🇺🇳全球优选
+  - RULE-SET,greatfire,🇺🇳全球优选
 
-  - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇸🇬PROXY
-  - DOMAIN-SUFFIX,lobehub.com,🇸🇬PROXY
-  - DOMAIN-SUFFIX,sealos.io,🇸🇬PROXY
+  - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇺🇳全球优选
+  - DOMAIN-SUFFIX,lobehub.com,🇺🇳全球优选
+  - DOMAIN-SUFFIX,sealos.io,🇺🇳全球优选
   
   - GEOIP,CN,🎯 全球直连
   - GEOIP,HK,🎯 全球直连
