@@ -262,9 +262,7 @@ rule-providers:
 
 rules:
   # Local Area Network
-  - IP-CIDR,172.30.254.0/24,DIRECT,no-resolve
-  - IP-CIDR,172.30.0.0/24,DIRECT,no-resolve
-  - IP-CIDR,192.168.0.0/24,DIRECT,no-resolve
+  - IP-CIDR,192.168.5.0/24,DIRECT,no-resolve
 
   # 全局强制直连白名单 (确保这条规则在其他规则之前)
   - RULE-SET,whitelist,DIRECT
