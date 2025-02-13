@@ -50,10 +50,19 @@ proxy-providers:
     path: ./providers/mlxsub.yaml
     #override:
       #down: "50 Mbps"
-      #up: "10 Mbps"
+      #up: "50 Mbps"
       #dialer-proxy: proxy
       #skip-cert-verify: true
       #udp: true
+  Papertool:
+    type: http
+    url: "https://api.138host.com/sub/96b368e42d4a2853392153aa2999148d/clashold"
+    interval: 3600
+    path: ./providers/Papertool.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: http://www.gstatic.com/generate_204
   
 geodata-mode: true
 geox-url:
@@ -64,36 +73,83 @@ geox-url:
 # 参考
 # https://hokoory.github.io/clash-mate-doc/config/
 # https://wiki.metacubex.one/config/proxies/transport/
-# proxies:
-#  - name: "🇸🇬ali-sing"
+proxies:
+- name: "US-72live.com"
+    # vmess + ws
+    type: trojan
+    server: v2ray.72live.com
+    port: 443
+    password: 95ff
+    cipher: auto
+    tls: true
+    # skip-cert-verify: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: v2ray.72live.com
 
 proxy-groups:
-  - name: "🪥自动选路"
+  - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
+    type: select
+    proxies:
+      - DIRECT
+      - "🇸🇬PROXY"
+  - name: "固定IP"  # 手动选择，手动处理
+    type: select   
+    proxies:
+      - "US-72live.com"
+
+  - name: "Papertool"  # 纸飞机，最高优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
-    exclude-filter: "(?i)台湾|日本|韩国|TWN|JPN|KOR"
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
+    exclude-filter: "(?i)香港|中国|HKG|CHN"
     use:
-      - mlxsub
-  - name: "🚾手动选路"
-    type: select
-    use:
-      - mlxsub
-  - name: "📚顺丰线路"
+      - Papertool
+
+  - name: "shunfeng"  # 顺丰，第二优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
     use:
       - shunfeng
-  - name: "🇸🇬PROXY"
-    type: select
-    proxies:
-      - "🪥自动选路"
+
+  - name: "mlxsub"  # MLXSUB，最低优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - mlxsub
+  - name: "AI站点代理"
+    type: url-test #自动测试
+    url: http://www.gstatic.com/generate_204 #https://www.google.com
+    interval: 300
+    tolerance: 50
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
+    exclude-filter: "(?i)香港|中国|HKG|CHN"
+    use:
+      - Papertool
+      - shunfeng
+      - mlxsub
+
+  - name: "🇸🇬PROXY"  # 主代理组
+    type: url-test  # 使用 url-test 策略
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - "Papertool"  # 优先使用纸飞机
+      - "shunfeng" # 其次顺丰
+      - "mlxsub"  # 最后使用 MLXSUB
+      - "固定IP" # 手动指定IP
+      - "AI站点代理"
       - "🚾手动选路"
-      - "📚顺丰线路"
-      - DIRECT
+
   - name: 🍃 应用净化
     type: select
     proxies:
@@ -104,11 +160,8 @@ proxy-groups:
     proxies:
       - DIRECT
       - "🇸🇬PROXY"
-  - name: 🐟 漏网之鱼
-    type: select
-    proxies:
-      - 🎯 全球直连
-      - 🇸🇬PROXY
+
+
 
 prule-config: &prule-config 
   type: http
@@ -186,11 +239,24 @@ rule-providers:
     url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
     path: ./ruleset/loyalsoldier/telegramcidr.yaml
 
+  # 从 URL 加载白名单
+  whitelist:
+    type: http
+    url: "https://your-git-repo/whitelist.txt"  # 替换为你的 Git 仓库中 whitelist.txt 文件的 URL
+    format: plain
+    interval: 86400  # 可选：设置更新间隔（秒）
+
 rules:
   # Local Area Network
   - IP-CIDR,172.30.254.0/24,DIRECT,no-resolve
   - IP-CIDR,172.30.0.0/24,DIRECT,no-resolve
   - IP-CIDR,192.168.0.0/24,DIRECT,no-resolve
+
+  # 全局强制直连白名单 (确保这条规则在其他规则之前)
+  - RULE-SET,whitelist,DIRECT
+
+  # 漏网之鱼，优先级最高
+  - MATCH,🐟 漏网之鱼
 
   # proxy
   - DOMAIN-SUFFIX,github.com,🇸🇬PROXY
