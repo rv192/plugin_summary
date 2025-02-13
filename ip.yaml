@@ -21,7 +21,7 @@ dns:
     - 8.8.4.4
     - tls://1.0.0.1:853
     - tls://dns.google:853
-  use-hosts: true 
+  use-hosts: true
 allow-lan: false
 mode: rule
 log-level: warning
@@ -35,7 +35,7 @@ log-level: warning
 # https://www.freeclashnode.com/uploads/2024/12/4-20241218.yaml
 # https://v2rayclash.org/uploads/2024/12/4-20241218.yml
 # https://clashv2ray.org/uploads/2024/12/4-20241218.yml
-p: &p 
+p: &p
   type: http
   interval: 10800
 proxy-providers:
@@ -63,7 +63,7 @@ proxy-providers:
       enable: true
       interval: 600
       url: http://www.gstatic.com/generate_204
-  
+
 geodata-mode: true
 geox-url:
   geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
@@ -74,7 +74,7 @@ geox-url:
 # https://hokoory.github.io/clash-mate-doc/config/
 # https://wiki.metacubex.one/config/proxies/transport/
 proxies:
-- name: "US-72live.com"
+  - name: "US-72live.com"
     # vmess + ws
     type: trojan
     server: v2ray.72live.com
@@ -96,7 +96,7 @@ proxy-groups:
       - DIRECT
       - "🇺🇳全球优选"
   - name: "固定IP"  # 手动选择，手动处理
-    type: select   
+    type: select
     proxies:
       - "US-72live.com"
 
@@ -163,7 +163,7 @@ proxy-groups:
 
 
 
-prule-config: &prule-config 
+prule-config: &prule-config
   type: http
   interval: 86400
 # https://github.com/Ekko1048/OpenClashRule
@@ -254,7 +254,7 @@ rules:
 
   # 全局强制直连白名单 (确保这条规则在其他规则之前)
   - RULE-SET,whitelist,DIRECT
-  
+
   # proxy
   - DOMAIN-SUFFIX,github.com,🇺🇳全球优选
 
@@ -270,7 +270,7 @@ rules:
   - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇺🇳全球优选
   - DOMAIN-SUFFIX,lobehub.com,🇺🇳全球优选
   - DOMAIN-SUFFIX,sealos.io,🇺🇳全球优选
-  
+
   - GEOIP,CN,🎯 全球直连
   - GEOIP,HK,🎯 全球直连
   # - GEOIP,TW,🎯 全球直连
