@@ -146,9 +146,6 @@ proxy-groups:
       - "Papertool"  # 优先使用纸飞机
       - "shunfeng" # 其次顺丰
       - "mlxsub"  # 最后使用 MLXSUB
-      - "固定IP" # 手动指定IP
-      # - "AI站点代理" # Removed AI站点代理
-      - "🚾手动选路"
 
   - name: 🍃 应用净化
     type: select
