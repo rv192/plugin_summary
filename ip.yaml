@@ -146,7 +146,6 @@ proxy-groups:
       - "Papertool"  # 优先使用纸飞机
       - "shunfeng" # 其次顺丰
       - "mlxsub"  # 最后使用 MLXSUB
-      - "AI站点代理"
       
   - name: 🍃 应用净化
     type: select
