@@ -92,9 +92,11 @@ proxies:
 proxy-groups:
   - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
     type: select
+    hidden: true
     proxies:
       - DIRECT
       - "🇺🇳全球优选"
+      
   - name: "固定IP"  # 手动选择，手动处理
     type: select
     proxies:
@@ -105,6 +107,7 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
+    hidden: true
     include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
     exclude-filter: "(?i)香港|中国|HKG|CHN"
     use:
@@ -113,6 +116,7 @@ proxy-groups:
   - name: "shunfeng"  # 顺丰，第二优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
+    hidden: true
     interval: 300
     tolerance: 50
     use:
@@ -121,10 +125,12 @@ proxy-groups:
   - name: "mlxsub"  # MLXSUB，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
+    hidden: true
     interval: 300
     tolerance: 50
     use:
       - mlxsub
+    
   - name: "AI站点代理"
     type: url-test #自动测试
     url: http://www.gstatic.com/generate_204 #https://www.google.com
@@ -149,11 +155,14 @@ proxy-groups:
 
   - name: 🍃 应用净化
     type: select
+    hidden: true
     proxies:
       - REJECT
       - DIRECT
+
   - name: 🎯 全球直连
     type: select
+    hidden: true
     proxies:
       - DIRECT
       - "🇺🇳全球优选"
@@ -249,7 +258,6 @@ rule-providers:
     type: http
     behavior: domain
     url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"  # 替换为你的 Git 仓库中 whitelist.txt 文件的 URL
-    format: plain
     interval: 86400  # 可选：设置更新间隔（秒）
 
 rules:
