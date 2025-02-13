@@ -1,0 +1,4 @@
+163.com
+baidu.com
+qq.com
+# 以后可以添加更多域名
