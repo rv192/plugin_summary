@@ -257,7 +257,7 @@ rule-providers:
   whitelist:
     type: http
     behavior: domain
-    url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"  # 替换为你的 Git 仓库中 whitelist.txt 文件的 URL
+    url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"
     interval: 86400  # 可选：设置更新间隔（秒）
 
 rules:
@@ -268,6 +268,19 @@ rules:
   - RULE-SET,whitelist,DIRECT
 
   # proxy
+  - DOMAIN-SUFFIX,72live.com,🎯 全球直连
+  - DOMAIN-SUFFIX,outlook.com,🎯 全球直连
+  - DOMAIN-SUFFIX,live.com,🎯 全球直连
+  
+  - DOMAIN-SUFFIX,openai.com,AI站点代理
+  - DOMAIN-SUFFIX,anthropic.com,AI站点代理
+  - DOMAIN-SUFFIX,claude.ai,AI站点代理
+  - DOMAIN-SUFFIX,groq.com,AI站点代理
+  - DOMAIN-SUFFIX,google.dev,AI站点代理
+  - DOMAIN-SUFFIX,sambanova.ai,AI站点代理
+  - DOMAIN-SUFFIX,cerebras.ai,AI站点代理
+  - DOMAIN-SUFFIX,x.ai,AI站点代理
+  - DOMAIN-SUFFIX,midjourney.com,AI站点代理
   - DOMAIN-SUFFIX,github.com,🇺🇳全球优选
 
   # RULE-SET
