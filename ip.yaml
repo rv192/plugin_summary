@@ -162,7 +162,8 @@ proxy-groups:
     use:
       - Papertool
       - shunfeng
-      - mlxsub
+      - Linux.do.free
+      - 290T
 
   - name: "🇺🇳全球优选"  # 主代理组
     type: url-test  # 使用 url-test 策略
@@ -170,9 +171,11 @@ proxy-groups:
     interval: 300
     tolerance: 50
     use:
-      - "Papertool"  # 优先使用纸飞机
-      - "shunfeng" # 其次顺丰
-      - "mlxsub"  # 最后使用 MLXSUB
+      - Papertool  # 优先使用纸飞机
+      - shunfeng # 其次顺丰
+      - Linux.do.free  # 最后使用 Linux.do.free
+      - 290T
+
 
   - name: 🍃 应用净化
     type: select
@@ -192,11 +195,11 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
-      - "🇺🇳全球优选"
-      - "固定IP"
-      - "Papertool"
-      - "shunfeng"
-      - "mlxsub"
+      - 🇺🇳全球优选
+      - 固定IP
+      - Papertool
+      - shunfeng
+      - Linux.do.free
 
 prule-config: &prule-config
   type: http
