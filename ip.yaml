@@ -51,10 +51,6 @@ proxy-providers:
     <<: *p
     url: "https://yjy.lol/api/v1/client/subscribe?token=f2ff8f6be01ab64f63ff1f93311af36f"
     path: ./providers/nezha.yaml
-  36y.me:
-    <<: *p
-    url: "https://g3i.buzz/v3/subscr?id=16cc70663cb340018a7ad5a146cc8428"
-    path: ./providers/36yme.yaml
   290T:
     <<: *p
     url: "https://api.neigui.us.kg/sub?token=4v1eR3A9c8Z4dVQ0PE9Yjimrbfg&tag=clash"
@@ -142,13 +138,11 @@ proxy-groups:
   - name: "Linux.do.free"  # Linux.do.free，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
-    hidden: true
     interval: 300
     tolerance: 50
     use:
       - weilai
       - nezha
-      - 36y.me
       - 290T
       - Linux.do.free
     
