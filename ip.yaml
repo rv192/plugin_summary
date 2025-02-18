@@ -43,11 +43,28 @@ proxy-providers:
     <<: *p
     url: "https://docv.ihouyu.cn/shunfeng46670bd940f3472895ae329a0af516d3.yaml"
     path: ./providers/shunfeng.yaml
-  mlxsub:
+  weilai:
     <<: *p
-    url: "https://mxlsub.me/new"
-    # url: "https://mxlsub.me/newfull"
-    path: ./providers/mlxsub.yaml
+    url: "https://xn--mest48anb1j.com/s/d0184475657745b1897fc64b50b6d8b2"
+    path: ./providers/weilai.yaml
+  nezha:
+    <<: *p
+    url: "https://yjy.lol/api/v1/client/subscribe?token=f2ff8f6be01ab64f63ff1f93311af36f"
+    path: ./providers/nezha.yaml
+  36y.me:
+    <<: *p
+    url: "https://g3i.buzz/v3/subscr?id=16cc70663cb340018a7ad5a146cc8428"
+    path: ./providers/36yme.yaml
+  290T:
+    <<: *p
+    url: "https://api.neigui.us.kg/sub?token=4v1eR3A9c8Z4dVQ0PE9Yjimrbfg&tag=clash"
+    path: ./providers/290t.yaml
+  Linux.do.free:
+    <<: *p
+    url: "https://aizaozao.com/s.php/gDy73LXW6O"
+    # url: "https://boon.rr.nu/s/gDy73LXW6O"
+    # url: "https://u.qhq.me/s/gDy73LXW6O"
+    path: ./providers/linuxdo_free.yaml
     #override:
       #down: "50 Mbps"
       #up: "50 Mbps"
@@ -122,14 +139,18 @@ proxy-groups:
     use:
       - shunfeng
 
-  - name: "mlxsub"  # MLXSUB，最低优先级
+  - name: "Linux.do.free"  # Linux.do.free，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     hidden: true
     interval: 300
     tolerance: 50
     use:
-      - mlxsub
+      - weilai
+      - nezha
+      - 36y.me
+      - 290T
+      - Linux.do.free
     
   - name: "AI站点代理"
     type: url-test #自动测试
