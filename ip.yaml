@@ -122,7 +122,7 @@ proxy-groups:
     tolerance: 50
     hidden: true
     include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
-    exclude-filter: "(?i)香港|中国|HKG|CHN"
+    exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
     use:
       - Papertool
 
@@ -152,7 +152,7 @@ proxy-groups:
     interval: 300
     tolerance: 50
     include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
-    exclude-filter: "(?i)香港|中国|HKG|CHN"
+    exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
     use:
       - Papertool
       - shunfeng
