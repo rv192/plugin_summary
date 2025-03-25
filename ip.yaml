@@ -156,7 +156,6 @@ proxy-groups:
     tolerance: 50
     use:
       - mxlsub.free
-      - mxlsub.new
       - mxlsub.full
       - Linux.do.free
     
@@ -172,6 +171,7 @@ proxy-groups:
       - shunfeng
       - Linux.do.free
       - mxlsub.full
+      - mxlsub.new
 
   - name: "🇺🇳全球优选"  # 主代理组
     type: url-test  # 使用 url-test 策略
@@ -180,9 +180,10 @@ proxy-groups:
     tolerance: 50
     use:
       - Papertool  # 优先使用纸飞机
-      - shunfeng # 其次顺丰
+      - shunfeng   # 其次顺丰
       - Linux.do.free  # 最后使用 Linux.do.free
       - mxlsub.full
+      - mxlsub.new
 
 
   - name: 🍃 应用净化
