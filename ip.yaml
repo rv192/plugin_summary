@@ -57,7 +57,7 @@ proxy-providers:
     path: ./providers/290t.yaml
   Linux.do.free:
     <<: *p
-    url: "https://aizaozao.com/s.php/gDy73LXW6O"
+    url: "https://mxlsub.me/free"
     # url: "https://boon.rr.nu/s/gDy73LXW6O"
     # url: "https://u.qhq.me/s/gDy73LXW6O"
     path: ./providers/linuxdo_free.yaml
