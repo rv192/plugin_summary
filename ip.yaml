@@ -43,9 +43,17 @@ proxy-providers:
     <<: *p
     url: "https://docv.ihouyu.cn/shunfeng46670bd940f3472895ae329a0af516d3.yaml"
     path: ./providers/shunfeng.yaml
-  Linux.do.free:
+  weilai:
+    <<: *p
+    url: "https://mxlsub.me/newfull"
+    path: ./providers/weilai.yaml
+  nezha:
     <<: *p
     url: "https://mxlsub.me/free"
+    path: ./providers/nezha.yaml
+  Linux.do.free:
+    <<: *p
+    url: "https://aizaozao.com/s.php/gDy73LXW6O"
     # url: "https://boon.rr.nu/s/gDy73LXW6O"
     # url: "https://u.qhq.me/s/gDy73LXW6O"
     path: ./providers/linuxdo_free.yaml
@@ -129,6 +137,8 @@ proxy-groups:
     interval: 300
     tolerance: 50
     use:
+      - weilai
+      - nezha
       - Linux.do.free
     
   - name: "AI站点代理"
@@ -142,6 +152,8 @@ proxy-groups:
       - Papertool
       - shunfeng
       - Linux.do.free
+      - weilai
+      - nezha
 
   - name: "🇺🇳全球优选"  # 主代理组
     type: url-test  # 使用 url-test 策略
@@ -152,6 +164,9 @@ proxy-groups:
       - Papertool  # 优先使用纸飞机
       - shunfeng # 其次顺丰
       - Linux.do.free  # 最后使用 Linux.do.free
+      - weilai
+      - nezha
+
 
   - name: 🍃 应用净化
     type: select
@@ -176,6 +191,8 @@ proxy-groups:
       - Papertool
       - shunfeng
       - Linux.do.free
+      - weilai
+      - nezha
 
 prule-config: &prule-config
   type: http
