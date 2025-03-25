@@ -140,14 +140,6 @@ proxy-groups:
     tolerance: 50
     use:
       - mxlsub.free
-      
-  - name: "mxlsub.new"  # mxlsub.new，最低优先级
-    type: url-test
-    url: http://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
-    use:
-      - mxlsub.new
 
   - name: "mxlsub.full"  # mxlsub.full，最低优先级
     type: url-test
