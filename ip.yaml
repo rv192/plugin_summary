@@ -120,7 +120,6 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
-    hidden: true
     include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
     exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
     use:
@@ -151,7 +150,7 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204 #https://www.google.com
     interval: 300
     tolerance: 50
-    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
     exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
     use:
       - Papertool
