@@ -136,13 +136,12 @@ proxy-groups:
     url: http://www.gstatic.com/generate_204 #https://www.google.com
     interval: 300
     tolerance: 50
-    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|SGP|JPN|KOR|TWN|USA"
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
     exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
     use:
       - Papertool
       - shunfeng
       - Linux.do.free
-      - 290T
 
   - name: "🇺🇳全球优选"  # 主代理组
     type: url-test  # 使用 url-test 策略
@@ -153,8 +152,6 @@ proxy-groups:
       - Papertool  # 优先使用纸飞机
       - shunfeng # 其次顺丰
       - Linux.do.free  # 最后使用 Linux.do.free
-      - 290T
-
 
   - name: 🍃 应用净化
     type: select
