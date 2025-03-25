@@ -45,15 +45,15 @@ proxy-providers:
     path: ./providers/shunfeng.yaml
   weilai:
     <<: *p
-    url: "https://xn--mest48anb1j.com/s/d0184475657745b1897fc64b50b6d8b2"
+    url: "https://mxlsub.me/free"
     path: ./providers/weilai.yaml
   nezha:
     <<: *p
-    url: "https://yjy.lol/api/v1/client/subscribe?token=f2ff8f6be01ab64f63ff1f93311af36f"
+    url: "https://mxlsub.me/new"
     path: ./providers/nezha.yaml
   290T:
     <<: *p
-    url: "https://api.neigui.us.kg/sub?token=4v1eR3A9c8Z4dVQ0PE9Yjimrbfg&tag=clash"
+    url: "https://mxlsub.me/newfull"
     path: ./providers/290t.yaml
   Linux.do.free:
     <<: *p
