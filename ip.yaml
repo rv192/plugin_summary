@@ -43,18 +43,18 @@ proxy-providers:
     <<: *p
     url: "https://docv.ihouyu.cn/shunfeng46670bd940f3472895ae329a0af516d3.yaml"
     path: ./providers/shunfeng.yaml
-  weilai:
+  mxlsub.free:
     <<: *p
     url: "https://mxlsub.me/free"
-    path: ./providers/weilai.yaml
-  nezha:
+    path: ./providers/mxlsub.free.yaml
+  mxlsub.new:
     <<: *p
     url: "https://mxlsub.me/new"
-    path: ./providers/nezha.yaml
-  290T:
+    path: ./providers/mxlsub.new.yaml
+  mxlsub.full:
     <<: *p
     url: "https://mxlsub.me/newfull"
-    path: ./providers/290t.yaml
+    path: ./providers/mxlsub.full.yaml
   Linux.do.free:
     <<: *p
     url: "https://aizaozao.com/s.php/gDy73LXW6O"
@@ -128,35 +128,34 @@ proxy-groups:
   - name: "shunfeng"  # 顺丰，第二优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
-    hidden: true
     interval: 300
     tolerance: 50
     use:
       - shunfeng
       
-  - name: "weilai"  # weilai，最低优先级
+  - name: "mxlsub.free"  # weilai.free，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
     use:
-      - weilai
+      - mxlsub.free
       
-  - name: "nezha"  # weilai，最低优先级
+  - name: "mxlsub.new"  # mxlsub.new，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
     use:
-      - nezha
+      - mxlsub.new
 
-  - name: "290T"  # weilai，最低优先级
+  - name: "mxlsub.full"  # mxlsub.full，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
     use:
-      - 290T
+      - mxlsub.full
       
   - name: "Linux.do.free"  # Linux.do.free，最低优先级
     type: url-test
@@ -164,9 +163,9 @@ proxy-groups:
     interval: 300
     tolerance: 50
     use:
-      - weilai
-      - nezha
-      - 290T
+      - mxlsub.free
+      - mxlsub.new
+      - mxlsub.full
       - Linux.do.free
     
   - name: "AI站点代理"
@@ -180,7 +179,7 @@ proxy-groups:
       - Papertool
       - shunfeng
       - Linux.do.free
-      - 290T
+      - mxlsub.full
 
   - name: "🇺🇳全球优选"  # 主代理组
     type: url-test  # 使用 url-test 策略
@@ -191,7 +190,7 @@ proxy-groups:
       - Papertool  # 优先使用纸飞机
       - shunfeng # 其次顺丰
       - Linux.do.free  # 最后使用 Linux.do.free
-      - 290T
+      - mxlsub.full
 
 
   - name: 🍃 应用净化
