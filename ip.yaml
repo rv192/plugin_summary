@@ -37,7 +37,7 @@ log-level: warning
 # https://clashv2ray.org/uploads/2024/12/4-20241218.yml
 p: &p
   type: http
-  interval: 10800
+  interval: 3600
 proxy-providers:
   shunfeng:
     <<: *p
@@ -133,7 +133,31 @@ proxy-groups:
     tolerance: 50
     use:
       - shunfeng
+      
+  - name: "weilai"  # weilai，最低优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - weilai
+      
+  - name: "nezha"  # weilai，最低优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - nezha
 
+  - name: "290T"  # weilai，最低优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - 290T
+      
   - name: "Linux.do.free"  # Linux.do.free，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
