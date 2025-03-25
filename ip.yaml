@@ -155,8 +155,6 @@ proxy-groups:
     interval: 300
     tolerance: 50
     use:
-      - mxlsub.free
-      - mxlsub.full
       - Linux.do.free
     
   - name: "AI站点代理"
