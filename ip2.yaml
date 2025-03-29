@@ -1,0 +1,312 @@
+#---------------------------------------------------#
+## 配置文件需要放置在 $HOME/.config/clash/*.yaml
+
+## 这份文件是clashX的基础配置文件，请尽量新建配置文件进行修改。
+## 只有这份文件的端口设置会随ClashX启动生效
+
+## 如果您不知道如何操作，请参阅 官方Github文档 https://github.com/Dreamacro/clash/blob/dev/README.md
+#---------------------------------------------------#
+
+# (HTTP and SOCKS5 in one port)
+mixed-port: 7890
+# RESTful API for clash
+external-controller: 127.0.0.1:9090
+dns:
+  enable: true
+  nameserver:
+    - 119.29.29.29
+    - 223.5.5.5
+  fallback:
+    - 8.8.8.8
+    - 8.8.4.4
+    - tls://1.0.0.1:853
+    - tls://dns.google:853
+  use-hosts: true
+allow-lan: false
+mode: rule
+log-level: warning
+
+# hosts:
+#  'gitea.fueze.cn': 192.168.0.225
+
+# https://oneclash.githubrowcontent.com/2024/12/20241217.yaml
+# https://www.shareclash.com/jddy/20241217-clash.yaml
+# https://www.dayclash.com/dayfree/20241217-clash.yaml
+# https://www.freeclashnode.com/uploads/2024/12/4-20241218.yaml
+# https://v2rayclash.org/uploads/2024/12/4-20241218.yml
+# https://clashv2ray.org/uploads/2024/12/4-20241218.yml
+p: &p
+  type: http
+  interval: 3600
+proxy-providers:
+  shunfeng:
+    <<: *p
+    url: "https://docv.ihouyu.cn/shunfeng46670bd940f3472895ae329a0af516d3.yaml"
+    path: ./providers/shunfeng.yaml
+  mxlsub.full:
+     <<: *p
+     url: "https://mxlsub.me/newfull"
+     path: ./providers/mxlsub.full.yaml
+  Linux.do.free:
+    <<: *p
+    url: "https://aizaozao.com/s.php/gDy73LXW6O"
+    # url: "https://boon.rr.nu/s/gDy73LXW6O"
+    # url: "https://u.qhq.me/s/gDy73LXW6O"
+    path: ./providers/linuxdo_free.yaml
+    #override:
+      #down: "50 Mbps"
+      #up: "50 Mbps"
+      #dialer-proxy: proxy
+      #skip-cert-verify: true
+      #udp: true
+  Papertool:
+    type: http
+    url: "https://api.138host.com/sub/96b368e42d4a2853392153aa2999148d/clashold"
+    interval: 3600
+    path: ./providers/Papertool.yaml
+    health-check:
+      enable: true
+      interval: 600
+      url: http://www.gstatic.com/generate_204
+
+geodata-mode: true
+geox-url:
+  geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+
+# 参考
+# https://hokoory.github.io/clash-mate-doc/config/
+# https://wiki.metacubex.one/config/proxies/transport/
+proxies:
+  - name: "US-72live.com"
+    # vmess + ws
+    type: trojan
+    server: v2ray.72live.com
+    port: 443
+    password: 95ff
+    cipher: auto
+    tls: true
+    # skip-cert-verify: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: v2ray.72live.com
+
+proxy-groups:
+  - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
+    type: select
+    hidden: true
+    proxies:
+      - DIRECT
+      - "🇺🇳全球优选"
+      
+  - name: "固定IP"  # 手动选择，手动处理
+    type: select
+    proxies:
+      - "US-72live.com"
+
+  - name: "Papertool"  # 纸飞机，最高优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
+    exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
+    use:
+      - Papertool
+
+  - name: "shunfeng"  # 顺丰，第二优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - shunfeng
+
+  - name: "mxlsub.full"  # 手动选择，手动处理
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - mxlsub.full
+      
+  - name: "Linux.do.free"  # Linux.do.free，最低优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - Linux.do.free
+    
+  - name: "AI站点代理"
+    type: url-test #自动测试
+    url: http://www.gstatic.com/generate_204 #https://www.google.com
+    interval: 300
+    tolerance: 50
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
+    exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
+    use:
+      - Papertool
+      - shunfeng
+      - Linux.do.free
+
+  - name: "🇺🇳全球优选"  # 主代理组
+    type: url-test  # 使用 url-test 策略
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - Papertool  # 优先使用纸飞机
+      - shunfeng   # 其次顺丰
+      - Linux.do.free  # 最后使用 Linux.do.free
+
+  - name: 🍃 应用净化
+    type: select
+    hidden: true
+    proxies:
+      - REJECT
+      - DIRECT
+
+  - name: 🎯 全球直连
+    type: select
+    hidden: true
+    proxies:
+      - DIRECT
+      - "🇺🇳全球优选"
+
+  - name: "🚾手动选路"
+    type: select
+    proxies:
+      - DIRECT
+      - 🇺🇳全球优选
+      - 固定IP
+      - Papertool
+      - shunfeng
+      - Linux.do.free
+
+prule-config: &prule-config
+  type: http
+  interval: 86400
+# https://github.com/Ekko1048/OpenClashRule
+rule-providers:
+  reject:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt
+    path: ./ruleset/reject.yaml
+  icloud:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt
+    path: ./ruleset/icloud.yaml
+  apple:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt
+    path: ./ruleset/apple.yaml
+  google:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt
+    path: ./ruleset/google.yaml
+  proxy:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
+    path: ./ruleset/proxy.yaml
+  direct:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt
+    path: ./ruleset/direct.yaml
+  private:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: ./ruleset/loyalsoldier/private.yaml
+  cncidr:
+    <<: *prule-config
+    behavior: ipcidr
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt
+    path: ./ruleset/cncidr.yaml
+  lancidr:
+    <<: *prule-config
+    behavior: ipcidr
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
+    path: ./ruleset/lancidr.yaml
+  tld-not-cn:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt"
+    path: ./ruleset/tld-not-cn.yaml
+  gfw:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"
+    path: ./ruleset/gfw.yaml
+  greatfire:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/greatfire.txt"
+    path: ./ruleset/greatfire.yaml
+  applications:
+    <<: *prule-config
+    behavior: classical
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: ./ruleset/loyalsoldier/applications.yaml
+  telegramcidr:
+    <<: *prule-config
+    behavior: ipcidr
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: ./ruleset/loyalsoldier/telegramcidr.yaml
+
+  # 从 URL 加载白名单
+  whitelist:
+    type: http
+    behavior: domain
+    url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"
+    interval: 86400  # 可选：设置更新间隔（秒）
+
+rules:
+  # Local Area Network
+  - IP-CIDR,192.168.5.0/24,DIRECT,no-resolve
+
+  # 全局强制直连白名单 (确保这条规则在其他规则之前)
+  - RULE-SET,whitelist,DIRECT
+
+  # proxy
+  - DOMAIN-SUFFIX,72live.com,🎯 全球直连
+  - DOMAIN-SUFFIX,outlook.com,🎯 全球直连
+  - DOMAIN-SUFFIX,live.com,🎯 全球直连
+  
+  - DOMAIN-SUFFIX,openai.com,AI站点代理
+  - DOMAIN-SUFFIX,anthropic.com,AI站点代理
+  - DOMAIN-SUFFIX,claude.ai,AI站点代理
+  - DOMAIN-SUFFIX,groq.com,AI站点代理
+  - DOMAIN-SUFFIX,google.dev,AI站点代理
+  - DOMAIN-SUFFIX,sambanova.ai,AI站点代理
+  - DOMAIN-SUFFIX,cerebras.ai,AI站点代理
+  - DOMAIN-SUFFIX,x.ai,AI站点代理
+  - DOMAIN-SUFFIX,midjourney.com,AI站点代理
+  - DOMAIN-SUFFIX,github.com,🇺🇳全球优选
+
+  # RULE-SET
+  - RULE-SET,icloud,🎯 全球直连
+  - RULE-SET,apple,🎯 全球直连
+
+  - RULE-SET,proxy,🇺🇳全球优选
+  - RULE-SET,gfw,🇺🇳全球优选
+  - RULE-SET,google,🇺🇳全球优选
+  - RULE-SET,greatfire,🇺🇳全球优选
+
+  - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇺🇳全球优选
+  - DOMAIN-SUFFIX,lobehub.com,🇺🇳全球优选
+  - DOMAIN-SUFFIX,sealos.io,🇺🇳全球优选
+
+  - GEOIP,CN,🎯 全球直连
+  - GEOIP,HK,🎯 全球直连
+  # - GEOIP,TW,🎯 全球直连
+  - MATCH,🐟 漏网之鱼
