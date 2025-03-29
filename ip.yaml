@@ -43,6 +43,10 @@ proxy-providers:
     <<: *p
     url: "https://docv.ihouyu.cn/shunfeng46670bd940f3472895ae329a0af516d3.yaml"
     path: ./providers/shunfeng.yaml
+  mxlsub.full:
+     <<: *p
+     url: "https://mxlsub.me/newfull"
+     path: ./providers/mxlsub.full.yaml
   Linux.do.free:
     <<: *p
     url: "https://aizaozao.com/s.php/gDy73LXW6O"
@@ -120,6 +124,14 @@ proxy-groups:
     tolerance: 50
     use:
       - shunfeng
+
+  - name: "mxlsub"  # 手动选择，手动处理
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - mxlsub.full
       
   - name: "Linux.do.free"  # Linux.do.free，最低优先级
     type: url-test
