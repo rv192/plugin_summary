@@ -125,7 +125,7 @@ proxy-groups:
     use:
       - shunfeng
 
-  - name: "mxlsub"  # 手动选择，手动处理
+  - name: "mxlsub.full"  # 手动选择，手动处理
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
