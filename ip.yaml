@@ -47,6 +47,10 @@ proxy-providers:
      <<: *p
      url: "https://mxlsub.me/newfull"
      path: ./providers/mxlsub.full.yaml
+  aggregator:
+     <<: *p
+     url: "https://imperialb.in/r/gynacebx"
+     path: ./providers/aggregator.yaml
   Linux.do.free:
     <<: *p
     url: "https://aizaozao.com/s.php/gDy73LXW6O"
@@ -140,6 +144,14 @@ proxy-groups:
     tolerance: 50
     use:
       - Linux.do.free
+      
+  - name: "aggregator"  # Linux.do.free，最低优先级
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - aggregator
     
   - name: "AI站点代理"
     type: url-test #自动测试
