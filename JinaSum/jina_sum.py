@@ -19,12 +19,13 @@ import time
     desire_priority=10,
     hidden=False,
     enabled=False,
-    desc="Sum url link content with jina reader and llm",
-    version="0.0.9",
+    desc="Sum url link content with firecrawl and llm",
+    version="0.1.0",
     author="hanfangyuan",
 )
 class JinaSum(Plugin):
-    jina_reader_base = "https://r.jina.ai"
+    firecrawl_api_base = "https://api.firecrawl.dev/v1/scrape"
+    firecrawl_api_key = "fc-6f4b572b4a514fa9b2076ff895c6893a"
     open_ai_api_base = "https://api.openai.com/v1"
     open_ai_model = "gpt-4o-mini"
     max_words = 8000
@@ -42,7 +43,8 @@ class JinaSum(Plugin):
             self.config = super().load_config()
             if not self.config:
                 self.config = self._load_config_template()
-            self.jina_reader_base = self.config.get("jina_reader_base", self.jina_reader_base)
+            self.firecrawl_api_base = self.config.get("firecrawl_api_base", self.firecrawl_api_base)
+            self.firecrawl_api_key = self.config.get("firecrawl_api_key", self.firecrawl_api_key)
             self.open_ai_api_base = self.config.get("open_ai_api_base", self.open_ai_api_base)
             self.open_ai_api_key = self.config.get("open_ai_api_key", "")
             self.open_ai_model = self.config.get("open_ai_model", self.open_ai_model)
@@ -75,17 +77,35 @@ class JinaSum(Plugin):
                 return
             target_url = html.unescape(content)  # 解决公众号卡片链接校验问题
 
-            jina_url = self._get_jina_url(target_url)
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
-            response = requests.get(jina_url, headers=headers, timeout=60)
-            response.raise_for_status()
-            target_url_content = response.text
+            # 在获取内容之前，先检查 FireCrawl 服务是否可用
+            try:
+                test_url = self.firecrawl_api_base.replace('/v1/scrape', '')  # 获取基础URL
+                test_response = requests.get(test_url, timeout=5)
+                logger.info(f"[JinaSum] FireCrawl服务状态检查: {test_response.status_code}")
+            except Exception as e:
+                logger.error(f"[JinaSum] FireCrawl服务不可用: {str(e)}")
+                reply = Reply(ReplyType.ERROR, "内容抓取服务暂时不可用，请稍后再试")
+                e_context["reply"] = reply
+                e_context.action = EventAction.BREAK_PASS
+                return
+
+            # 使用FireCrawl抓取网页内容
+            target_url_content = self._get_firecrawl_content(target_url)
+            if not target_url_content:
+                if "mp.weixin.qq.com" in target_url:
+                    reply = Reply(ReplyType.ERROR, "微信公众号文章需要验证，无法自动抓取内容，请考虑手动复制文章内容")
+                else:
+                    reply = Reply(ReplyType.ERROR, "我无法抓取这个网页内容，请稍后再试")
+                e_context["reply"] = reply
+                e_context.action = EventAction.BREAK_PASS
+                return
 
             openai_chat_url = self._get_openai_chat_url()
             openai_headers = self._get_openai_headers()
             openai_payload = self._get_openai_payload(target_url_content)
             logger.debug(f"[JinaSum] openai_chat_url: {openai_chat_url}, openai_headers: {openai_headers}, openai_payload: {openai_payload}")
             
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
             response = requests.post(openai_chat_url, headers={**openai_headers, **headers}, json=openai_payload, timeout=60)
             response.raise_for_status()
             result = response.json()['choices'][0]['message']['content']
@@ -143,7 +163,7 @@ class JinaSum(Plugin):
             e_context.action = EventAction.BREAK_PASS
 
     def get_help_text(self, verbose, **kwargs):
-        return f'使用Jina Reader抓取页面内容，并使用LLM总结网页链接内容，并可以生成图片总结。'
+        return f'使用FireCrawl抓取页面内容，并使用LLM总结网页链接内容，并可以生成图片总结。'
 
     def _load_config_template(self):
         logger.debug("No Suno plugin config.json, use plugins/jina_sum/config.json.template")
@@ -156,8 +176,89 @@ class JinaSum(Plugin):
         except Exception as e:
             logger.exception(e)
 
-    def _get_jina_url(self, target_url):
-        return self.jina_reader_base + "/" + target_url
+    def _get_firecrawl_content(self, target_url):
+        """使用FireCrawl API获取网页内容"""
+        try:
+            # 基础请求头
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            
+            # 如果有API key，则添加到请求头
+            if self.firecrawl_api_key:
+                headers['Authorization'] = f'Bearer {self.firecrawl_api_key}'
+            
+            # 检测是否是微信公众号链接
+            is_wechat_mp = "mp.weixin.qq.com" in target_url
+            
+            # 针对自部署实例，简化请求参数
+            payload = {
+                'url': target_url
+            }
+            
+            logger.info(f"[JinaSum] 开始抓取URL: {target_url}, 是否是微信公众号: {is_wechat_mp}")
+            
+            response = requests.post(
+                self.firecrawl_api_base, 
+                headers=headers, 
+                json=payload,
+                timeout=90  # 增加超时时间
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # 打印完整响应以便调试
+            logger.debug(f"[JinaSum] FireCrawl 原始响应: {result}")
+            
+            # 根据自部署FireCrawl的响应格式灵活提取正文内容
+            # 尝试多种可能的结构
+            content = None
+            
+            # 1. 尝试 success/data/markdown 结构
+            if result.get('success') and 'data' in result:
+                if 'markdown' in result['data']:
+                    content = result['data']['markdown']
+            
+            # 2. 尝试直接的 markdown 字段
+            elif 'markdown' in result:
+                content = result['markdown']
+            
+            # 3. 尝试 content 或 text 字段（一些爬虫API会使用这些字段名）
+            elif 'content' in result:
+                content = result['content']
+            elif 'text' in result:
+                content = result['text']
+            
+            # 4. 如果是嵌套的结构
+            elif 'data' in result and isinstance(result['data'], dict):
+                data = result['data']
+                if 'content' in data:
+                    content = data['content']
+                elif 'text' in data:
+                    content = data['text']
+                elif 'html' in data:
+                    content = data['html']  # 可能需要额外处理HTML
+            
+            # 如果找到内容
+            if content:
+                logger.info(f"[JinaSum] FireCrawl抓取成功，内容长度: {len(content)}")
+                
+                # 检测内容中是否包含验证码或者环境异常的关键词
+                if any(keyword in content for keyword in ["环境异常", "完成验证", "拖动滑块", "验证码"]):
+                    logger.warning(f"[JinaSum] 检测到目标网站需要验证码，无法抓取内容")
+                    return None
+                
+                return content
+            
+            logger.error(f"[JinaSum] 无法从FireCrawl响应中提取内容: {result}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"[JinaSum] FireCrawl抓取失败: {str(e)}")
+            # 如果是连接错误，提供更详细的错误信息
+            if "Connection" in str(e):
+                logger.error(f"[JinaSum] 连接到FireCrawl服务器失败，请检查网络或服务器状态")
+            return None
 
     def _get_openai_chat_url(self):
         return self.open_ai_api_base + "/chat/completions"
@@ -285,28 +386,44 @@ class JinaSum(Plugin):
                 "title": title or "📝 内容总结",
                 "author": author or "AI助手",
                 "content": summary_content,
-                "font": "Noto Sans SC",
-                "fontStyle": "Regular",
-                "titleFontSize": 36,
-                "contentFontSize": 28,
-                "contentLineHeight": 44,
-                "contentColor": "#333333",
-                "backgroundColor": "#FFFFFF",
-                "width": 440,
-                "height": 0,
-                "useFont": "MiSans-Thin",
-                "fontScale": 0.7,
-                "ratio": "Auto",
-                "padding": 15,
-                "watermark": "蓝胖子速递",
-                "qrCodeTitle": "<p>蓝胖子速递</p>",
-                "qrCode": "https://u.wechat.com/MLCKhcLlexXLmy3Jp3FM9QE",
-                "watermarkText": "",
-                "watermarkColor": "#999999",
-                "watermarkSize": 24,
-                "watermarkGap": 20,
-                "exportType": "png",
-                "exportQuality": 100
+                "watermark": "AAA",
+                "qrCodeTitle": "AI买家秀",
+                "qrCodeText": "<p>提供AI总结技术支持</p>",
+                "pagination": "01",
+                "qrCode": "https://qc.72live.com/AIBuyerRoast",
+                "style": {
+                    "align": "left",
+                    "backgroundName": "bg-cosmic-8",
+                    "backShadow": "",
+                    "font": "MiSans-Regular",
+                    "width": 540,
+                    "ratio": "",
+                    "height": 0,
+                    "fontScale": 1,
+                    "padding": "15px",
+                    "borderRadius": "15px",
+                    "backgroundAngle": "0deg",
+                    "lineHeights": {
+                    "date": "",
+                    "content": ""
+                    },
+                    "letterSpacings": {
+                    "date": "",
+                    "content": ""
+                    },
+                    "color": "#ffffff",
+                    "opacity": 1,
+                    "blur": 0
+                },
+                "switchConfig": {
+                    "showIcon": True,
+                    "showTitle": True,
+                    "showContent": True,
+                    "showAuthor": True,
+                    "showQRCode": False,
+                    "showSignature": False,
+                    "showQuotes": False
+                }
             }
             response = requests.post(api_url, json=data, timeout=30)
             response.raise_for_status()
