@@ -11,6 +11,9 @@ from concurrent.futures import ThreadPoolExecutor
 import base64
 from io import BytesIO
 from PIL import Image
+import psycopg2  # 添加 PostgreSQL 连接库
+import re  # 用于解析连接字符串
+import urllib.parse
 
 import plugins
 from bridge.context import ContextType
@@ -106,11 +109,22 @@ class Summary(Plugin):
                 logger.error("[Summary] 多模态LLM API 密钥未在配置中找到")
                 raise Exception("多模态LLM API 密钥未配置")
 
-
-            # 初始化数据库
-            curdir = os.path.dirname(__file__)
-            db_path = os.path.join(curdir, "chat.db")
-            self.conn = sqlite3.connect(db_path, check_same_thread=False)
+            # 检查是否有 PostgreSQL 连接配置
+            self.postgres_url = self.config.get("POSTGRES_URL", "")
+            self.use_postgres = bool(self.postgres_url)
+            
+            # 初始化数据库连接
+            if self.use_postgres:
+                # 使用 PostgreSQL
+                logger.info("[Summary] 使用 PostgreSQL 数据库")
+                self.conn = self._connect_postgres()
+            else:
+                # 使用 SQLite
+                logger.info("[Summary] 使用 SQLite 数据库")
+                curdir = os.path.dirname(__file__)
+                db_path = os.path.join(curdir, "chat.db")
+                self.conn = sqlite3.connect(db_path, check_same_thread=False)
+            
             self._init_database()
 
              # 初始化线程池
@@ -124,23 +138,130 @@ class Summary(Plugin):
             logger.error(f"[Summary] 初始化失败: {e}")
             raise e
 
+    def _connect_postgres(self):
+        """连接到 PostgreSQL 数据库"""
+        try:
+            import urllib.parse
+            
+            # 解析连接字符串
+            parsed_url = urllib.parse.urlparse(self.postgres_url)
+            
+            # 检查是否需要处理密码
+            if '@' in parsed_url.password:
+                # 提取组件
+                username = parsed_url.username
+                password = urllib.parse.quote_plus(parsed_url.password)  # URL编码密码
+                hostname = parsed_url.hostname
+                port = parsed_url.port
+                dbname = parsed_url.path.strip('/')
+                
+                # 重建连接字符串
+                postgres_url = f"postgresql://{username}:{password}@{hostname}:{port}/{dbname}"
+                logger.info(f"[Summary] 修正后的PostgreSQL连接URL (密码已隐藏)")
+                self.postgres_url = postgres_url
+            
+            logger.info(f"[Summary] 正在连接到 PostgreSQL (密码已隐藏)")
+            conn = psycopg2.connect(self.postgres_url)
+            return conn
+        except Exception as e:
+            logger.error(f"[Summary] PostgreSQL 连接失败: {e}")
+            raise e
+
     def _init_database(self):
         """初始化数据库架构"""
-        c = self.conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS chat_records
-                    (sessionid TEXT, msgid INTEGER, user TEXT, content TEXT, type TEXT, timestamp INTEGER, is_triggered INTEGER,
-                    PRIMARY KEY (sessionid, msgid))''')
+        cursor = self.conn.cursor()
         
-        # 检查 is_triggered 列是否存在
-        c = c.execute("PRAGMA table_info(chat_records);")
-        column_exists = False
-        for column in c.fetchall():
-            if column[1] == 'is_triggered':
-                column_exists = True
-                break
-        if not column_exists:
-            self.conn.execute("ALTER TABLE chat_records ADD COLUMN is_triggered INTEGER DEFAULT 0;")
-            self.conn.execute("UPDATE chat_records SET is_triggered = 0;")
+        if self.use_postgres:
+            try:
+                # 检查表是否存在
+                cursor.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'chat_records')")
+                table_exists = cursor.fetchone()[0]
+                
+                if not table_exists:
+                    # 创建新表，使用新的数据库结构
+                    cursor.execute('''
+                        CREATE TABLE chat_records (
+                            msgid BIGINT NOT NULL,
+                            sessionid TEXT NOT NULL, 
+                            sessionname TEXT,
+                            userid TEXT,
+                            username TEXT,
+                            content TEXT, 
+                            type TEXT, 
+                            timestamp INTEGER, 
+                            is_triggered INTEGER,
+                            PRIMARY KEY (sessionid, msgid)
+                        )
+                    ''')
+                else:
+                    # 检查 msgid 列的数据类型
+                    cursor.execute('''
+                        SELECT data_type 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'chat_records' AND column_name = 'msgid'
+                    ''')
+                    column_type = cursor.fetchone()[0]
+                    
+                    # 如果不是 BIGINT，则修改列类型
+                    if column_type.lower() != 'bigint':
+                        cursor.execute("ALTER TABLE chat_records ALTER COLUMN msgid TYPE BIGINT")
+                        logger.info("[Summary] 已将 msgid 列类型修改为 BIGINT")
+                
+                # 检查新增列是否存在，若不存在则添加
+                required_columns = ['sessionname', 'userid', 'username']
+                for column in required_columns:
+                    cursor.execute(f'''
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'chat_records' AND column_name = '{column}'
+                    ''')
+                    
+                    if not cursor.fetchone():
+                        cursor.execute(f"ALTER TABLE chat_records ADD COLUMN {column} TEXT")
+                        logger.info(f"[Summary] 已添加 {column} 列")
+                
+                # 检查 is_triggered 列是否存在
+                cursor.execute('''
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'chat_records' AND column_name = 'is_triggered'
+                ''')
+                
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE chat_records ADD COLUMN is_triggered INTEGER DEFAULT 0")
+                    cursor.execute("UPDATE chat_records SET is_triggered = 0")
+                    
+            except Exception as e:
+                logger.error(f"[Summary] 初始化或修改数据库表结构失败: {e}")
+                # 如果修改表结构失败，可以考虑创建一个新表并迁移数据
+                # 或者在这里提供更详细的错误处理
+        else:
+            # SQLite 创建表
+            cursor.execute('''CREATE TABLE IF NOT EXISTS chat_records
+                            (msgid INTEGER, 
+                            sessionid TEXT, 
+                            sessionname TEXT,
+                            userid TEXT,
+                            username TEXT,
+                            content TEXT, 
+                            type TEXT, 
+                            timestamp INTEGER, 
+                            is_triggered INTEGER,
+                            PRIMARY KEY (sessionid, msgid))''')
+            
+            # 检查新增列是否存在
+            cursor.execute("PRAGMA table_info(chat_records);")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            for column in ['sessionname', 'userid']:
+                if column not in columns:
+                    cursor.execute(f"ALTER TABLE chat_records ADD COLUMN {column} TEXT;")
+            
+            # 检查 is_triggered 列是否存在
+            if 'is_triggered' not in columns:
+                cursor.execute("ALTER TABLE chat_records ADD COLUMN is_triggered INTEGER DEFAULT 0;")
+                cursor.execute("UPDATE chat_records SET is_triggered = 0;")
+        
         self.conn.commit()
 
     def _load_config(self):
@@ -337,37 +458,105 @@ class Summary(Plugin):
             logger.error(f"[Summary] 图片处理失败: {e}")
             return None
 
-    def _insert_record(self, session_id, msg_id, user, content, msg_type, timestamp, is_triggered = 0):
+    def _insert_record(self, session_id, msg_id, username, content, msg_type, timestamp, is_triggered=0, session_name=None, user_id=None):
         """将记录插入到数据库"""
-        c = self.conn.cursor()
-        logger.debug("[Summary] 插入记录: {} {} {} {} {} {} {}" .format(session_id, msg_id, user, content, msg_type, timestamp, is_triggered))
-        c.execute("INSERT OR REPLACE INTO chat_records VALUES (?,?,?,?,?,?,?)", (session_id, msg_id, user, content, msg_type, timestamp, is_triggered))
+        cursor = self.conn.cursor()
+        logger.debug("[Summary] 插入记录: {} {} {} {} {} {} {} {} {}" .format(session_id, msg_id, session_name, user_id, username, content, msg_type, timestamp, is_triggered))
+        
+        if self.use_postgres:
+            cursor.execute(
+                "INSERT INTO chat_records VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (sessionid, msgid) DO UPDATE SET sessionname = %s, userid = %s, username = %s, content = %s, type = %s, timestamp = %s, is_triggered = %s", 
+                (msg_id, session_id, session_name, user_id, username, content, msg_type, timestamp, is_triggered, 
+                 session_name, user_id, username, content, msg_type, timestamp, is_triggered)
+            )
+        else:
+            cursor.execute(
+                "INSERT OR REPLACE INTO chat_records VALUES (?,?,?,?,?,?,?,?,?)", 
+                (msg_id, session_id, session_name, user_id, username, content, msg_type, timestamp, is_triggered)
+            )
+        
         self.conn.commit()
     
-    def _get_records(self, session_id, start_timestamp=0, limit=9999):
-        """从数据库获取记录"""
-        c = self.conn.cursor()
-        c.execute("SELECT * FROM chat_records WHERE sessionid=? and timestamp>? ORDER BY timestamp DESC LIMIT ?", (session_id, start_timestamp, limit))
-        return c.fetchall()
+    def _get_records(self, session_id, start_timestamp=0, limit=9999, is_group=None):
+        """
+        从数据库获取记录
+        
+        针对群聊和私聊的处理逻辑不同：
+        - 群聊：只返回is_triggered=0的记录（排除触发机器人回复的消息）
+        - 私聊：返回所有记录（不过滤is_triggered，因为私聊中所有消息都是is_triggered=1）
+        
+        :param session_id: 会话ID
+        :param start_timestamp: 开始时间戳，只返回该时间之后的记录
+        :param limit: 限制返回的记录数量
+        :param is_group: 是否为群聊，如果为None会自动检测
+        :return: 记录列表，按时间戳降序排列
+        """
+        cursor = self.conn.cursor()
+        
+        # 检查会话是否为群聊（如果未指定）
+        if is_group is None:
+            if self.use_postgres:
+                cursor.execute(
+                    "SELECT DISTINCT sessionname FROM chat_records WHERE sessionid=%s LIMIT 1", 
+                    (session_id,)
+                )
+            else:
+                cursor.execute(
+                    "SELECT DISTINCT sessionname FROM chat_records WHERE sessionid=? LIMIT 1", 
+                    (session_id,)
+                )
+            
+            result = cursor.fetchone()
+            is_group = bool(result and result[0])  # 如果sessionname存在且非空，则视为群聊
+        
+        # 构建查询语句 - 对群聊过滤掉is_triggered=1的记录，私聊不过滤
+        if is_group:
+            if self.use_postgres:
+                cursor.execute(
+                    "SELECT * FROM chat_records WHERE sessionid=%s AND timestamp>%s AND is_triggered=0 ORDER BY timestamp DESC LIMIT %s", 
+                    (session_id, start_timestamp, limit)
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM chat_records WHERE sessionid=? AND timestamp>? AND is_triggered=0 ORDER BY timestamp DESC LIMIT ?", 
+                    (session_id, start_timestamp, limit)
+                )
+        else:
+            # 私聊不过滤is_triggered
+            if self.use_postgres:
+                cursor.execute(
+                    "SELECT * FROM chat_records WHERE sessionid=%s AND timestamp>%s ORDER BY timestamp DESC LIMIT %s", 
+                    (session_id, start_timestamp, limit)
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM chat_records WHERE sessionid=? AND timestamp>? ORDER BY timestamp DESC LIMIT ?", 
+                    (session_id, start_timestamp, limit)
+                )
+        
+        return cursor.fetchall()
 
     def on_receive_message(self, e_context: EventContext):
         """处理接收到的消息"""
         context = e_context['context']
         cmsg : ChatMessage = e_context['context']['msg']
+        
+        # 获取会话ID和用户信息 - 使用 ChatMessage 对象的属性
+        session_id = cmsg.from_user_id  # 始终使用实际ID作为session_id
+        session_name = None
+        user_id = None
         username = None
-        session_id = cmsg.from_user_id
-        if self.config.get('channel_type', 'wx') == 'wx' and cmsg.from_user_nickname is not None:
-            session_id = cmsg.from_user_nickname
-
+        
         if context.get("isgroup", False):
-            username = cmsg.actual_user_nickname
-            if username is None:
-                username = cmsg.actual_user_id
+            # 群聊情况
+            session_name = cmsg.other_user_nickname  # 群名称
+            user_id = cmsg.actual_user_id  # 发送者ID
+            username = cmsg.actual_user_nickname  # 发送者昵称
         else:
+            # 私聊情况
+            user_id = cmsg.from_user_id
             username = cmsg.from_user_nickname
-            if username is None:
-                username = cmsg.from_user_id
-
+        
         is_triggered = False
         content = context.content
         if context.get("isgroup", False):
@@ -377,27 +566,305 @@ class Summary(Plugin):
                 is_triggered = True
             if context['msg'].is_at and not self.config.get("group_at_off", False):
                 is_triggered = True
+                
+            # 清理消息内容中的用户ID前缀
+            if content.startswith(f"{cmsg.actual_user_id}:"):
+                content = content[len(cmsg.actual_user_id) + 1:].strip()
         else:
             match_prefix = check_prefix(content, self.config.get('single_chat_prefix',['']))
             if match_prefix is not None:
                 is_triggered = True
 
-        self._insert_record(session_id, cmsg.msg_id, username, content, str(context.type), cmsg.create_time, int(is_triggered))
-        logger.debug("[Summary] {}:{} ({})" .format(username, context.content, session_id))
+        # 记录消息处理的开始日志
+        logger.debug(f"[Summary] 处理消息，类型：{context.type}，内容前50个字符：{content[:50] if len(content) > 0 else '空内容'}")
+        
+        # 首先处理特殊消息类型：SHARING 或 XML内容
+        msg_type = str(context.type)
+        processed_content = content
+        
+        # 如果是SHARING类型，或者内容包含XML特征，尝试处理
+        if context.type == ContextType.SHARING or (
+            "<?xml" in content and "<msg>" in content and "<appmsg" in content):
+            
+            # 检查是否是音乐分享
+            is_music_share = False
+            if "<?xml" in content and "<type>3</type>" in content and "<title>" in content:
+                title_match = re.search(r'<title>\[(.*?)\](.*?)</title>', content)
+                if title_match:
+                    is_music_share = True
+                    processed_content = self._process_message_content(content, context.type)
+                    msg_type = "EXPLAIN"  # 修改为EXPLAIN类型
+                    logger.debug(f"[Summary] 检测到音乐分享: {processed_content}")
+            
+            # 如果不是音乐分享，检查是否是不支持展示的内容（兼容中英文版本）
+            if not is_music_share and "<title>" in content and (
+                "不支持展示该内容" in content or 
+                "Your current Weixin version does not support this content" in content):
+                processed_content = self._process_wechat_video_content(content)
+                if processed_content.startswith("[多媒体描述]"):
+                    msg_type = "EXPLAIN"
+                    logger.debug(f"[Summary] 检测到不支持展示的内容，处理为多媒体描述：{processed_content}")
+        else:
+            # 处理其他常规消息类型
+            processed_content = self._process_message_content(content, context.type)
+            if processed_content.startswith("[多媒体描述]") or processed_content.startswith("[音乐分享]"):
+                msg_type = "EXPLAIN"
+            
+        self._insert_record(
+            session_id, 
+            cmsg.msg_id, 
+            username, 
+            processed_content, 
+            msg_type, 
+            cmsg.create_time, 
+            int(is_triggered),
+            session_name,
+            user_id
+        )
+        
+        logger.debug("[Summary] {}:{} ({})" .format(username, processed_content, session_id))
         
         # 处理图片消息
         if context.type == ContextType.IMAGE and self.multimodal_llm_api_base and self.multimodal_llm_model and self.multimodal_llm_api_key:
             context.get("msg").prepare()
             image_path = context.content  # 假设 context.content 是图片本地路径
-            self._process_image_async(session_id, cmsg.msg_id, username, image_path, cmsg.create_time)
+            self._process_image_async(session_id, cmsg.msg_id, username, image_path, cmsg.create_time, session_name, user_id)
 
+    def _process_wechat_video_content(self, content):
+        """
+        处理微信视频内容，提取描述信息
+        
+        :param content: 包含微信视频信息的XML内容
+        :return: 处理后的描述文本，格式为 [多媒体描述]描述内容
+        """
+        try:
+            logger.debug(f"[Summary] 尝试解析微信视频内容，内容特征：XML长度={len(content)}，包含appmsg={('<appmsg' in content)}")
+            
+            # 检查是否包含特定微信视频的XML标记
+            if "<?xml" in content and "<msg>" in content and "<appmsg" in content:
+                # 检查是否有"不支持展示该内容"的标记（兼容中英文版本的提示文本）
+                title_match = re.search(r'<title>(.*?)</title>', content)
+                if title_match and ("不支持展示该内容" in title_match.group(1) or 
+                                 "Your current Weixin version does not support this content" in title_match.group(1)):
+                    logger.debug(f"[Summary] 找到不支持展示内容标记，标题：{title_match.group(1)}")
+                    
+                    # 尝试多种方式提取描述信息
+                    desc = None
+                    
+                    # 1. 尝试从finderFeed/desc提取
+                    finder_desc_match = re.search(r'<finderFeed>.*?<desc>(.*?)</desc>', content, re.DOTALL)
+                    if finder_desc_match and finder_desc_match.group(1).strip():
+                        desc = finder_desc_match.group(1).strip()
+                        logger.debug(f"[Summary] 从finderFeed/desc提取到描述：{desc}")
+                    
+                    # 2. 尝试从根级别的desc提取
+                    if not desc:
+                        root_desc_match = re.search(r'<desc>(.*?)</desc>', content)
+                        if root_desc_match and root_desc_match.group(1).strip():
+                            desc = root_desc_match.group(1).strip()
+                            logger.debug(f"[Summary] 从根级别desc提取到描述：{desc}")
+                    
+                    # 3. 尝试从nickname提取
+                    if not desc:
+                        nickname_match = re.search(r'<nickname>(.*?)</nickname>', content)
+                        if nickname_match and nickname_match.group(1).strip():
+                            desc = f"来自{nickname_match.group(1).strip()}的视频"
+                            logger.debug(f"[Summary] 从nickname提取到描述：{desc}")
+                    
+                    # 4. 尝试从bizNickname提取
+                    if not desc:
+                        biz_nickname_match = re.search(r'<bizNickname>(.*?)</bizNickname>', content)
+                        if biz_nickname_match and biz_nickname_match.group(1).strip():
+                            desc = f"来自{biz_nickname_match.group(1).strip()}的视频"
+                            logger.debug(f"[Summary] 从bizNickname提取到描述：{desc}")
+                    
+                    # 如果找到描述，返回格式化内容
+                    if desc:
+                        return f"[多媒体描述]{desc}"
+                    else:
+                        logger.debug("[Summary] 未能提取到任何有效描述")
+                        return "[多媒体描述]未知内容的视频"
+            
+            # 如果不满足条件或者提取失败，返回原内容
+            logger.debug("[Summary] 内容不符合微信视频格式，返回原内容")
+            return content
+        except Exception as e:
+            logger.error(f"[Summary] 处理微信视频内容失败: {e}")
+            return content
+            
+    def _process_message_content(self, content, content_type):
+        """
+        处理不同类型的消息内容，特别是引用类型的消息
+        
+        格式：
+        [引用]{JSON数据体不换行}
+        JSON结构：{"reply":"回复内容","quote_type":"text|image|share|video|music","quoted_person":"引用人名字","content":内容对象}
+        """
+        # 检查是否是微信视频或特殊XML消息（处理需要在引用检查前进行）
+        # 对任何类型的消息，只要内容包含XML结构且含有特定标记，就进行处理
+        if "<?xml" in content and "<msg>" in content and "<appmsg" in content:
+            # 检查是否是音乐分享
+            type_match = re.search(r'<type>(\d+)</type>', content)
+            title_match = re.search(r'<title>\[(.*?)\](.*?)</title>', content)
+            
+            if type_match and title_match and type_match.group(1) == "3":
+                # 音乐分享，提取信息
+                music_app = title_match.group(1).strip()
+                song_title = title_match.group(2).strip()
+                
+                artist = ""
+                des_match = re.search(r'<des>(.*?)</des>', content)
+                if des_match:
+                    artist = des_match.group(1).strip()
+                
+                music_info = f"[音乐分享] {song_title}" + (f" - {artist}" if artist else "") + f" ({music_app})"
+                
+                return music_info
+            
+            # 检查是否是不支持展示的内容
+            title_match = re.search(r'<title>(.*?)</title>', content)
+            if title_match and "不支持展示该内容" in title_match.group(1):
+                return self._process_wechat_video_content(content)
+        
+        # 检查是否是引用消息
+        quote_match = re.search(r'「(.*?):[\s\S]*?」[\s\S]*?----------([\s\S]*)', content)
+        
+        if not quote_match:
+            # 如果不是引用消息，处理普通消息
+            if content_type == ContextType.IMAGE:
+                return "[图片]"
+            elif content_type == ContextType.VOICE:
+                return "[语音]"
+            else:
+                return content
+        
+        # 提取被引用人的名字
+        quoted_person = quote_match.group(1).strip()
+        # 提取回复内容（分隔符后的部分）
+        reply_content = quote_match.group(2).strip()
+        
+        # 提取引用的内容（在「」内的部分）
+        quoted_content_match = re.search(r'「.*?:([\s\S]*?)」', content)
+        quoted_content = quoted_content_match.group(1).strip() if quoted_content_match else ""
+        
+        # 处理引用内容，确定引用类型和内容
+        quote_info = self._process_quoted_content(quoted_content)
+        
+        # 构建JSON对象
+        quote_json = {
+            "reply": reply_content,
+            "quote_type": quote_info["type"],
+            "quoted_person": quoted_person,
+            "content": quote_info["content"]
+        }
+        
+        # 转换为JSON字符串（确保不换行）
+        json_str = json.dumps(quote_json, ensure_ascii=False).replace("\n", "")
+        
+        # 构建最终格式
+        return f"[引用]{json_str}"
 
-    def _process_image_async(self, session_id, msg_id, username, image_path, create_time):
+    def _process_quoted_content(self, content):
+        """
+        处理引用的内容，确定引用类型和内容
+        
+        返回格式：{"type": "text|image|share|video|music", "content": 内容对象}
+        """
+        # 首先检查是否是微信视频消息
+        if "<?xml" in content and "<msg>" in content and "<appmsg" in content:
+            # 检查是否是音乐分享
+            type_match = re.search(r'<type>(\d+)</type>', content)
+            title_match = re.search(r'<title>\[(.*?)\](.*?)</title>', content)
+            
+            # 音乐类型通常是type=3，同时标题会有[音乐应用名称]格式
+            if type_match and title_match and type_match.group(1) == "3":
+                logger.debug("[Summary] 检测到音乐分享")
+                
+                # 提取音乐信息
+                music_app = title_match.group(1).strip()
+                song_title = title_match.group(2).strip()
+                
+                # 提取艺术家信息
+                artist = ""
+                des_match = re.search(r'<des>(.*?)</des>', content)
+                if des_match:
+                    artist = des_match.group(1).strip()
+                
+                # 创建音乐内容对象
+                music_content = {
+                    "app": music_app,
+                    "title": song_title,
+                    "artist": artist,
+                    "description": f"{song_title}" + (f" - {artist}" if artist else "") + f" ({music_app})"
+                }
+                
+                return {
+                    "type": "music", 
+                    "content": music_content
+                }
+            
+            # 检查是否有"不支持展示该内容"的标记（兼容中英文版本）
+            title_match = re.search(r'<title>(.*?)</title>', content)
+            if title_match and ("不支持展示该内容" in title_match.group(1) or 
+                             "not support this content" in title_match.group(1)):
+                # 尝试多种方式提取描述信息
+                desc = None
+                
+                # 尝试从finderFeed/desc提取
+                finder_desc_match = re.search(r'<finderFeed>.*?<desc>(.*?)</desc>', content, re.DOTALL)
+                if finder_desc_match and finder_desc_match.group(1).strip():
+                    desc = finder_desc_match.group(1).strip()
+                
+                # 尝试从根级别的desc提取
+                if not desc:
+                    root_desc_match = re.search(r'<desc>(.*?)</desc>', content)
+                    if root_desc_match and root_desc_match.group(1).strip():
+                        desc = root_desc_match.group(1).strip()
+                
+                # 尝试从nickname提取
+                if not desc:
+                    nickname_match = re.search(r'<nickname>(.*?)</nickname>', content)
+                    if nickname_match and nickname_match.group(1).strip():
+                        desc = f"来自{nickname_match.group(1).strip()}的视频"
+                
+                # 尝试从bizNickname提取
+                if not desc:
+                    biz_nickname_match = re.search(r'<bizNickname>(.*?)</bizNickname>', content)
+                    if biz_nickname_match and biz_nickname_match.group(1).strip():
+                        desc = f"来自{biz_nickname_match.group(1).strip()}的视频"
+                
+                return {"type": "video", "content": {"desc": desc or "未知内容的视频"}}
+        
+        # 检查是否是分享卡片（包含appmsg标签）
+        if "<msg>" in content and "<appmsg" in content:
+            # 尝试提取标题
+            title_match = re.search(r'<title>(.*?)</title>', content)
+            title = title_match.group(1).strip() if title_match else "未知标题"
+            
+            # 尝试提取URL
+            url_match = re.search(r'<url>(.*?)</url>', content)
+            url = url_match.group(1).strip() if url_match else ""
+            
+            # 构建分享卡片内容
+            share_content = {"title": title}
+            if url:
+                share_content["url"] = url
+            
+            return {"type": "share", "content": share_content}
+        
+        # 然后检查是否是图片（包含XML标记和img标签）
+        elif "<msg>" in content and ("<img" in content or "cdnthumburl" in content):
+            return {"type": "image", "content": None}
+        
+        # 其他内容（普通文字）
+        return {"type": "text", "content": content}
+
+    def _process_image_async(self, session_id, msg_id, username, image_path, create_time, session_name=None, user_id=None):
         """使用线程池异步处理图片消息"""
-        future = self.executor.submit(self._process_image, session_id, msg_id, username, image_path, create_time)
+        future = self.executor.submit(self._process_image, session_id, msg_id, username, image_path, create_time, session_name, user_id)
         future.add_done_callback(self._handle_image_result)
 
-    def _process_image(self, session_id, msg_id, username, image_path, create_time):
+    def _process_image(self, session_id, msg_id, username, image_path, create_time, session_name=None, user_id=None):
         """处理图片消息，调用多模态LLM API"""
         try:
             base64_image = self._resize_and_encode_image(image_path)
@@ -418,7 +885,7 @@ class Summary(Plugin):
                     return error_msg #返回错误信息
             else:
                     # 将识别出的文本内容保存到数据库
-                    self._insert_record(session_id, msg_id, username, f"[图片描述]{text_content}", str(ContextType.TEXT), create_time, 0) # 这里默认识别内容没有触发
+                    self._insert_record(session_id, msg_id, username, f"[图片描述]{text_content}", "EXPLAIN", create_time, 0, session_name, user_id) # 这里默认识别内容没有触发
                     return True # 返回 True 表示成功
         except Exception as e:
             error_msg = f"识图失败：未知错误 {str(e)}"
@@ -461,7 +928,8 @@ class Summary(Plugin):
 
             if record[4] in [str(ContextType.IMAGE), str(ContextType.VOICE)]:
                 content = f"[{record[4]}]"
-
+            # 不需要特别处理 EXPLAIN 类型，因为内容已经包含了描述信息
+            
             sentence = f'[{time_str}] {username}: "{content}"'
             if is_triggered:
                 sentence += " <T>"
@@ -532,12 +1000,22 @@ class Summary(Plugin):
             # 解析命令
             start_time, limit, custom_prompt = self._parse_summary_command(clist[1:])
 
-
-            msg:ChatMessage = e_context['context']['msg']
+            # 获取会话ID
+            msg = e_context['context']['msg']
+            context = e_context['context']
+            
+            # 始终使用ID作为session_id
             session_id = msg.from_user_id
-            if self.config.get('channel_type', 'wx') == 'wx' and msg.from_user_nickname is not None:
-                session_id = msg.from_user_nickname
-            records = self._get_records(session_id, start_time, limit)
+            
+            # 判断是否为群聊
+            is_group = context.get("isgroup", False)
+            
+            # 清理消息内容中的用户ID前缀（如果存在）
+            if is_group and content.startswith(f"{msg.actual_user_id}:"):
+                content = content[len(msg.actual_user_id) + 1:].strip()
+            
+            # 传递is_group参数给_get_records方法
+            records = self._get_records(session_id, start_time, limit, is_group=is_group)
             
             if not records:
                 reply = Reply(ReplyType.ERROR, "没有找到聊天记录")
