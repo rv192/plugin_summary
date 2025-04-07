@@ -8,7 +8,9 @@
   "white_url_list": [],
   "black_url_list": [
         "https://support.weixin.qq.com",
+        "https://wzq.tenpay.com/",
         "https://channels-aladin.wxqcloud.qq.com",
+        "https://changdunovel.com",
         "https://www.wechat.com",
         "https://channels.weixin.qq.com",
         "https://docs.qq.com",
@@ -17,7 +19,8 @@
         "https://map.qq.com",
         "https://y.qq.com",
         "https://music.163.com"],
-  "generate_image": true,
+  "generate_image": false,
+  "black_group_list": ["GPT测试", "卷皮学院（2025年群）"],
   "black_group_list": ["GPT测试", "卷皮学院"],
   "prompt": "{\"instruction\": \"请对以下文章/新闻/公众号内容进行摘要、提炼关键词，并以 JSON 格式返回结果。\", \"format\": {\"Title\": \"文章/新闻/公众号的标题 (字符串)\", \"Date\": \"发布日期，格式为 YYYY-MM-DD (字符串)\", \"Author\": \"作者名称 (字符串)\", \"Content\": {\"Summary\": \"文章/新闻/公众号内容的摘要，不超过 800 字，需提炼出核心观点和关键信息，并根据需要给出关键过程/论据。语言应简洁、准确、客观，并保持原文的主要意思，不添加个人评论或解读。 (字符串)\", \"Tags\": \"3-5 个关键词作为标签，用逗号分隔。 (字符串)\"}}, \"task\": \"请根据上述格式，对以下文章/新闻/公众号内容进行处理：\\n\\n{{文章/新闻/公众号正文}}\"}"
 }
