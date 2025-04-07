@@ -53,7 +53,7 @@ class JinaSum(Plugin):
             self.white_url_list = self.config.get("white_url_list", self.white_url_list)
             self.black_url_list = self.config.get("black_url_list", self.black_url_list)
             self.generate_image = self.config.get("generate_image", True)
-            self.black_group_list = self.config.get("black_group_list", "")
+            self.black_group_list = self.config.get("black_group_list", [])
             logger.info(f"[JinaSum] inited, config={self.config}")
             self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
         except Exception as e:
@@ -66,9 +66,13 @@ class JinaSum(Plugin):
             content = context.content
             if context.get("isgroup", True):
                 msg:ChatMessage = e_context['context']['msg']
-                if msg.from_user_nickname in self.black_group_list:
-                    logger.debug(f"[JinaSum] {msg.from_user_nickname} is in black group list, skip")
-                    return
+                group_name = msg.other_user_nickname
+                
+                # 检查群名称是否在黑名单中
+                for black_group in self.black_group_list:
+                    if group_name == black_group or black_group in group_name:
+                        logger.debug(f"[JinaSum] 群组 '{group_name}' 在黑名单中，跳过处理")
+                        return
 
             if context.type != ContextType.SHARING and context.type != ContextType.TEXT:
                 return
@@ -386,35 +390,28 @@ class JinaSum(Plugin):
                 "title": title or "📝 内容总结",
                 "author": author or "AI助手",
                 "content": summary_content,
-                "watermark": "AAA",
-                "qrCodeTitle": "AI买家秀",
-                "qrCodeText": "<p>提供AI总结技术支持</p>",
-                "pagination": "01",
-                "qrCode": "https://qc.72live.com/AIBuyerRoast",
-                "style": {
-                    "align": "left",
-                    "backgroundName": "bg-cosmic-8",
-                    "backShadow": "",
-                    "font": "MiSans-Regular",
-                    "width": 540,
-                    "ratio": "",
-                    "height": 0,
-                    "fontScale": 1,
-                    "padding": "15px",
-                    "borderRadius": "15px",
-                    "backgroundAngle": "0deg",
-                    "lineHeights": {
-                    "date": "",
-                    "content": ""
-                    },
-                    "letterSpacings": {
-                    "date": "",
-                    "content": ""
-                    },
-                    "color": "#ffffff",
-                    "opacity": 1,
-                    "blur": 0
-                },
+                "font": "Noto Sans SC",
+                "fontStyle": "Regular",
+                "titleFontSize": 36,
+                "contentFontSize": 28,
+                "contentLineHeight": 44,
+                "contentColor": "#333333",
+                "backgroundColor": "#FFFFFF",
+                "width": 440,
+                "height": 0,
+                "useFont": "MiSans-Thin",
+                "fontScale": 0.7,
+                "ratio": "Auto",
+                "padding": 15,
+                "watermark": "蓝胖子速递",
+                "qrCodeTitle": "<p>蓝胖子速递</p>",
+                "qrCode": "https://u.wechat.com/MPJjlS-S7P8v5Cm0zxXx2kw",
+                "watermarkText": "",
+                "watermarkColor": "#999999",
+                "watermarkSize": 24,
+                "watermarkGap": 20,
+                "exportType": "png",
+                "exportQuality": 100,
                 "switchConfig": {
                     "showIcon": True,
                     "showTitle": True,
