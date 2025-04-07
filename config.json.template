@@ -4,6 +4,7 @@
     "open_ai_api_base": "https://api.open.com/v1",
     "open_ai_api_key": "sk-xxx",
     "open_ai_model": "gpt-4o-mini",
+    "POSTGRES_URL": "postgresql://root:password@8.8.8.8:5432/WeChatHistory",
     "multimodal_llm_api_base": "https://api.72live.com/v1",
     "multimodal_llm_model": "GLM-4V-Flash",
     "multimodal_llm_api_key": "sk-xxx",
