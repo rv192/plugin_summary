@@ -21,35 +21,98 @@ git config core.sparseCheckout true
 echo "n8n/" > .git/info/sparse-checkout
 git pull origin master
 ```
-1.1 复制环境变量模板：
+克隆完成后，你会看到以下目录结构：
+```
+n8n/
+├── docker/         # Docker相关配置文件
+│   ├── build.sh
+│   ├── docker-compose.yaml
+│   └── env.template
+└── nginx/          # Nginx配置文件
+    └── n8n.conf
+```
+### 2. 配置环境变量
+2.1 复制环境变量模板：
 ```bash
-cp docker/env.template .env
+cd docker
+cp env.template .env
+nano .env
 ```
 
-1.2 修改环境变量：
+2.2 修改环境变量（注意：必须先配置域名相关设置）：
 ```env
-POSTGRES_USER=root                    # PostgreSQL用户名
-POSTGRES_PASSWORD=n8n!yyds            # PostgreSQL密码
-POSTGRES_DB=n8n                       # PostgreSQL数据库名
-N8N_ENCRYPTION_KEY=<生成随机字符串>     # 加密密钥
-N8N_USER_MANAGEMENT_JWT_SECRET=<生成随机字符串>  # JWT密钥
-N8N_DEFAULT_LOCALE=zh-CN              # 设置默认语言为中文
-N8N_HOST=n8n.yourdomain.com          # 替换为你的域名
-WEBHOOK_URL=https://n8n.yourdomain.com # 替换为你的域名
+# 首先修改以下两项，确保使用HTTPS
+N8N_HOST=n8n.yourdomain.com                    # 替换为你的域名
+WEBHOOK_URL=https://n8n.yourdomain.com         # 替换为你的域名，必须使用HTTPS
+
+# 其他配置项（一般不需要修改）
+POSTGRES_USER=root                             # PostgreSQL用户名
+POSTGRES_PASSWORD=n8n!yyds                     # PostgreSQL密码
+POSTGRES_DB=n8n                                # PostgreSQL数据库名
+N8N_DEFAULT_LOCALE=zh-CN                       # 中文界面的关键配置项
+
+# 以下两项会由build.sh自动生成，无需手动设置
+N8N_ENCRYPTION_KEY=                             # 首次运行build.sh时自动生成
+N8N_USER_MANAGEMENT_JWT_SECRET=                 # 首次运行build.sh时自动生成
 ```
 
-### 2. 配置Nginx
-
-2.1 将nginx/n8n.conf复制到Nginx配置目录：
+### 3. 构建和启动服务
+3.1 设置build.sh脚本权限并执行：
 ```bash
-sudo cp nginx/n8n.conf /etc/nginx/conf.d/
+cd docker
+chmod +x build.sh
+./build.sh  # 首次运行会自动生成加密密钥
+./build.sh  # 需要运行第二次以完成构建
 ```
 
-2.2 修改Nginx配置文件中的域名：
+3.2 检查服务状态，此时应该能看到n8n暴露了5678端口：
+```bash
+docker ps
+```
+
+### 4. 配置Nginx
+4.1 修改Nginx配置文件：
+首先修改 nginx/n8n.conf 中的域名，找到erver_name，将 n8n.yourdomain.com 替换为你的实际域名。
+```bash
+nano nginx/n8n.conf
+```
+
+4.2 部署Nginx配置：
+```bash
+# 复制配置文件到Nginx目录
+sudo cp nginx/n8n.conf /etc/nginx/sites-available/n8n.conf
+
+# 创建软链接启用配置
+sudo ln -s /etc/nginx/sites-available/n8n.conf /etc/nginx/sites-enabled/
+
+# 验证Nginx配置
+sudo nginx -t
+
+# 如果配置正确，重启Nginx
+sudo systemctl restart nginx
+```
+
+### 5. 配置HTTPS
+5.1 安装certbot（如果未安装）：
+```bash
+sudo apt-get update
+sudo apt-get install certbot python3-certbot-nginx
+```
+
+5.2 获取SSL证书：
+```bash
+sudo certbot --nginx -d n8n.yourdomain.com
+```
+
+5.3 确认Nginx配置：
+Certbot会自动修改Nginx配置，添加SSL相关配置。完成后的配置文件应该包含以下内容：
 ```nginx
 server {
-    listen 80;
-    server_name n8n.yourdomain.com;    # 替换为你的域名
+    listen 443 ssl;
+    server_name n8n.yourdomain.com;
+
+    ssl_certificate /etc/letsencrypt/live/n8n.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/n8n.yourdomain.com/privkey.pem;
 
     location / {
         proxy_pass http://localhost:5678;
@@ -57,27 +120,22 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
-        ...
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
+}
+
+server {
+    listen 80;
+    server_name n8n.yourdomain.com;
+    return 301 https://$server_name$request_uri;
 }
 ```
 
-2.3 重启Nginx：
+5.4 验证配置并重启Nginx：
 ```bash
 sudo nginx -t && sudo systemctl restart nginx
-```
-
-### 3. 启动N8N
-
-3.1 使用Docker Compose启动服务：
-```bash
-cd docker
-docker-compose up -d
-```
-
-3.2 检查服务状态：
-```bash
-docker-compose ps
 ```
 
 ## 特性说明
