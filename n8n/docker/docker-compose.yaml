@@ -1,0 +1,83 @@
+version: "3.9"
+
+networks:
+  selfn8n:
+
+x-n8n: &service-n8n
+  image: n8nio/n8n:latest
+  networks: ['selfn8n']
+  environment:
+    # Postgre数据库相关配置,主要从.env读取
+    - DB_TYPE=postgresdb
+    - DB_POSTGRESDB_HOST=postgres
+    - DB_POSTGRESDB_USER=${POSTGRES_USER}
+    - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+
+    # 是否启用诊断和个性化推荐
+    - N8N_DIAGNOSTICS_ENABLED=false
+    - N8N_PERSONALIZATION_ENABLED=false
+
+    # (可选)安全性加密密钥
+    - ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+    - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
+
+    # (重要)设置域名和回调地址
+    - N8N_HOST=${N8N_HOST}
+    - WEBHOOK_URL=${WEBHOOK_URL}
+
+    # 设置中文区域和界面
+    - GENERIC_TIMEZONE=Asia/Shanghai
+    - TZ=Asia/Shanghai
+    - N8N_DEFAULT_LOCALE=zh-CN
+
+services:
+  # Postgre数据库
+  postgres:
+    image: postgres:16-alpine
+    networks: ['selfn8n']
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      # 挂载当前目录下的postgres-data指向数据库目录
+      - ./postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n-import:
+    <<: *service-n8n
+    container_name: n8n-import
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      # 自动导入backup目录下的凭证和工作流
+      - "n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
+    volumes:
+      # 挂载当前路径下的bakcup
+      - ./backup:/backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  n8n:
+    <<: *service-n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - 5678:5678
+    volumes:
+      - ./n8n/backup:/backup
+      - ./shared:/data/shared
+      # 汉化界面的关键挂载
+      - ./dist:/usr/local/lib/node_modules/n8n/node_modules/n8n-editor-ui/dist # 挂载汉化
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      n8n-import:
+        condition: service_completed_successfully
