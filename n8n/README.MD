@@ -12,7 +12,7 @@
 ### 1. 从Github下载并创建n8n目录
 ```bash
 git init
-git remote add origin https://github.com/rv192/plugin_summary.git
+git remote add origin https://github.com/rv192/CommonRepo.git
 git config core.sparseCheckout true
 echo "n8n/" > .git/info/sparse-checkout
 git pull origin master
