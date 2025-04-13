@@ -9,11 +9,7 @@
 - 域名，假设为n8n.yourdomain.com（已配置解析到服务器）
 
 ## 快速部署
-### 0. 创建工作目录
-```bash
-mkdir ~/n8n && cd ~/n8n
-```
-### 1. 从Github下载文件
+### 1. 从Github下载并创建n8n目录
 ```bash
 git init
 git remote add origin https://github.com/rv192/plugin_summary.git
@@ -34,7 +30,7 @@ n8n/
 ### 2. 配置环境变量
 2.1 复制环境变量模板：
 ```bash
-cd docker
+cd n8n/docker
 cp env.template .env
 nano .env
 ```
@@ -59,10 +55,8 @@ N8N_USER_MANAGEMENT_JWT_SECRET=                 # 首次运行build.sh时自动�
 ### 3. 构建和启动服务
 3.1 设置build.sh脚本权限并执行：
 ```bash
-cd docker
 chmod +x build.sh
-./build.sh  # 首次运行会自动生成加密密钥
-./build.sh  # 需要运行第二次以完成构建
+./build.sh
 ```
 
 3.2 检查服务状态，此时应该能看到n8n暴露了5678端口：
@@ -167,16 +161,9 @@ sudo nginx -t && sudo systemctl restart nginx
 2. 定期备份数据库和工作流
 3. 使用强密码，定期更换加密密钥
 
-## 升级说明
+## 备份凭证和工作流
 
-1. 备份当前数据：
 ```bash
-docker-compose exec n8n n8n export:workflow --all --output=/backup/workflows
-docker-compose exec n8n n8n export:credentials --all --output=/backup/credentials
-```
-
-2. 更新镜像并重启：
-```bash
-docker-compose pull
-docker-compose up -d
+sudo docker compose exec n8n n8n export:workflow --all --output=/home/node/backup/workflows
+sudo docker compose exec n8n n8n export:credentials --all --output=/home/node/backup/credentials
 ```
