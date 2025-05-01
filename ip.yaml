@@ -121,6 +121,7 @@ proxy-groups:
     type: select
     proxies:
       - "US-72live.com"
+      - "DE-72live.com"
 
   - name: "Papertool"  # 纸飞机，最高优先级
     type: url-test
