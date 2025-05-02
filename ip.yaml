@@ -94,7 +94,7 @@ proxies:
       headers:
         Host: v2ray.72live.com
         
-  - name: "US-WEST.ClawCloud.com"
+  - name: "US-WEST-ClawCloud.com"
     # vmess + ws
     type: trojan
     server: cihdyilrwwbm.us-west-1.clawcloudrun.com
@@ -109,7 +109,22 @@ proxies:
       headers:
         Host: cihdyilrwwbm.us-west-1.clawcloudrun.com
         
-  - name: "JP.ClawCloud.com"
+  - name: "US-EAST-ClawCloud.com"
+    # vmess + ws
+    type: trojan
+    server: chmptklcbvvr.us-east-1.clawcloudrun.com
+    port: 443
+    password: yyds
+    cipher: auto
+    tls: true
+    # skip-cert-verify: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: chmptklcbvvr.us-east-1.clawcloudrun.com
+        
+  - name: "JP-ClawCloud.com"
     # vmess + ws
     type: trojan
     server: hdfcglkhvpou.ap-northeast-1.clawcloudrun.com
@@ -123,7 +138,7 @@ proxies:
       path: /some
       headers:
         Host: hdfcglkhvpou.ap-northeast-1.clawcloudrun.com
-
+        
 proxy-groups:
   - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
     type: select
@@ -136,8 +151,8 @@ proxy-groups:
     type: select
     proxies:
       - "US-72live.com"
-      - "US-WEST.ClawCloud.com"
-      - "JP.ClawCloud.com"
+      - "US-WEST-ClawCloud.com"
+      - "JP-ClawCloud.com"
 
   - name: "Papertool"  # 纸飞机，最高优先级
     type: url-test
