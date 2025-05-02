@@ -99,7 +99,7 @@ proxies:
     type: trojan
     server: https://cihdyilrwwbm.us-west-1.clawcloudrun.com
     port: 443
-    password: yyds2
+    password: yyds
     cipher: auto
     tls: true
     # skip-cert-verify: true
