@@ -94,12 +94,12 @@ proxies:
       headers:
         Host: v2ray.72live.com
         
-  - name: "DE-72live.com"
+  - name: "US-WEST.72live.com"
     # vmess + ws
     type: trojan
-    server: https://egrdnwcfutjq.eu-central-1.clawcloudrun.com
+    server: https://cihdyilrwwbm.us-west-1.clawcloudrun.com
     port: 443
-    password: yyds2025
+    password: yyds2
     cipher: auto
     tls: true
     # skip-cert-verify: true
@@ -107,7 +107,7 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: https://egrdnwcfutjq.eu-central-1.clawcloudrun.com
+        Host: https://cihdyilrwwbm.us-west-1.clawcloudrun.com
         
 proxy-groups:
   - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
