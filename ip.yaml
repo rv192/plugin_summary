@@ -94,7 +94,7 @@ proxies:
       headers:
         Host: v2ray.72live.com
         
-  - name: "US-WEST.72live.com"
+  - name: "US-WEST.ClawCloud.com"
     # vmess + ws
     type: trojan
     server: https://cihdyilrwwbm.us-west-1.clawcloudrun.com
@@ -121,7 +121,7 @@ proxy-groups:
     type: select
     proxies:
       - "US-72live.com"
-      - "DE-72live.com"
+      - "US-WEST.ClawCloud.com"
 
   - name: "Papertool"  # 纸飞机，最高优先级
     type: url-test
