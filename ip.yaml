@@ -97,7 +97,7 @@ proxies:
   - name: "US-WEST.ClawCloud.com"
     # vmess + ws
     type: trojan
-    server: https://cihdyilrwwbm.us-west-1.clawcloudrun.com
+    server: cihdyilrwwbm.us-west-1.clawcloudrun.com
     port: 443
     password: yyds
     cipher: auto
@@ -107,7 +107,7 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: https://cihdyilrwwbm.us-west-1.clawcloudrun.com
+        Host: cihdyilrwwbm.us-west-1.clawcloudrun.com
         
 proxy-groups:
   - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
