@@ -152,6 +152,7 @@ proxy-groups:
     proxies:
       - "US-72live.com"
       - "US-WEST-ClawCloud.com"
+      - "US-EAST-ClawCloud.com"
       - "JP-ClawCloud.com"
 
   - name: "Papertool"  # 纸飞机，最高优先级
