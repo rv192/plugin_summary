@@ -84,7 +84,7 @@ proxies:
     type: trojan
     server: v2ray.72live.com
     port: 443
-    password: 95ff
+    password: P@s2word
     cipher: auto
     tls: true
     # skip-cert-verify: true
