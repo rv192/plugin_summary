@@ -97,9 +97,9 @@ proxies:
   - name: "US-WEST-ClawCloud.com"
     # vmess + ws
     type: trojan
-    server: cihdyilrwwbm.us-west-1.clawcloudrun.com
+    server: wuchdjgyhmvx.us-west-1.clawcloudrun.com
     port: 443
-    password: yyds
+    password: P@s2word
     cipher: auto
     tls: true
     # skip-cert-verify: true
@@ -107,14 +107,14 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: cihdyilrwwbm.us-west-1.clawcloudrun.com
+        Host: wuchdjgyhmvx.us-west-1.clawcloudrun.com
         
   - name: "US-EAST-ClawCloud.com"
     # vmess + ws
     type: trojan
-    server: chmptklcbvvr.us-east-1.clawcloudrun.com
+    server: aumgetqzvfxg.us-east-1.clawcloudrun.com
     port: 443
-    password: yyds
+    password: P@s2word
     cipher: auto
     tls: true
     # skip-cert-verify: true
@@ -122,14 +122,14 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: chmptklcbvvr.us-east-1.clawcloudrun.com
+        Host: aumgetqzvfxg.us-east-1.clawcloudrun.com
 
   - name: "DE-ClawCloud.com"
     # vmess + ws
     type: trojan
-    server: khfibnifqyda.eu-central-1.clawcloudrun.com
+    server: qsfbshkpydbm.eu-central-1.clawcloudrun.com
     port: 443
-    password: yyds
+    password: P@s2word
     cipher: auto
     tls: true
     # skip-cert-verify: true
@@ -137,14 +137,14 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: khfibnifqyda.eu-central-1.clawcloudrun.com
+        Host: qsfbshkpydbm.eu-central-1.clawcloudrun.com
         
   - name: "SG-ClawCloud.com"
     # vmess + ws
     type: trojan
     server: wkzwxwpnwtuq.ap-southeast-1.clawcloudrun.com
     port: 443
-    password: yyds
+    password: P@s2word
     cipher: auto
     tls: true
     # skip-cert-verify: true
@@ -159,7 +159,7 @@ proxies:
     type: trojan
     server: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
     port: 443
-    password: 244
+    password: P@s2word
     cipher: auto
     tls: true
     # skip-cert-verify: true
