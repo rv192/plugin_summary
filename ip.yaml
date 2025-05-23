@@ -157,7 +157,7 @@ proxies:
   - name: "JP-ClawCloud.com"
     # vmess + ws
     type: trojan
-    server: hdfcglkhvpou.ap-northeast-1.clawcloudrun.com
+    server: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
     port: 443
     password: yyds
     cipher: auto
@@ -167,7 +167,7 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: hdfcglkhvpou.ap-northeast-1.clawcloudrun.com
+        Host: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
         
 proxy-groups:
   - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
