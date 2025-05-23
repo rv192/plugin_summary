@@ -97,7 +97,7 @@ proxies:
   - name: "US-WEST-ClawCloud.com"
     # vmess + ws
     type: trojan
-    server: wuchdjgyhmvx.us-west-1.clawcloudrun.com
+    server: cnrukzvrarda.us-west-1.clawcloudrun.com
     port: 443
     password: P@s2word
     cipher: auto
@@ -107,7 +107,7 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: wuchdjgyhmvx.us-west-1.clawcloudrun.com
+        Host: cnrukzvrarda.us-west-1.clawcloudrun.com
         
   - name: "US-EAST-ClawCloud.com"
     # vmess + ws
