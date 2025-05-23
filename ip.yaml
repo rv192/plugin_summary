@@ -159,7 +159,7 @@ proxies:
     type: trojan
     server: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
     port: 443
-    password: yyds
+    password: 244
     cipher: auto
     tls: true
     # skip-cert-verify: true
