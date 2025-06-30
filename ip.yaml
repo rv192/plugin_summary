@@ -80,12 +80,12 @@ geox-url:
 # https://wiki.metacubex.one/config/proxies/transport/
 proxies:
   - name: "美国住宅-Butler"
-    type: http
+    type: https
     server: gate-hk.kookeey.info
     port: 1000
     username: "6081727-9478c425"
     password: "dad41cc8-US_Pennsylvania_city_Butler-52790293"
-    dialer-proxy: 美国家宽-Butler
+    dialer-proxy: Papertool
   - name: "US-72live.com"
     # vmess + ws
     type: trojan
@@ -178,9 +178,9 @@ proxies:
         
 proxy-groups:
   - name: "家宽组"
-  type: select
-  proxies:
-    - "美国住宅-Butler"
+    type: select
+    proxies:
+      - "美国住宅-Butler"
   - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
     type: select
     hidden: true
@@ -280,6 +280,7 @@ proxy-groups:
       - shunfeng
       - Linux.do.free
       - mxlsub.full
+      - 家宽组
 
 prule-config: &prule-config
   type: http
