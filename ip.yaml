@@ -80,12 +80,12 @@ geox-url:
 # https://wiki.metacubex.one/config/proxies/transport/
 proxies:
   - name: "美国住宅-Butler"
-    type: https
+    type: http
     server: gate-hk.kookeey.info
     port: 1000
     username: "6081727-9478c425"
     password: "dad41cc8-US_Iowa_city_Butler-90673696"
-    dialer-proxy: "Papertool"
+    dialer-proxy: "US-72live.com"
   - name: "US-72live.com"
     # vmess + ws
     type: trojan
