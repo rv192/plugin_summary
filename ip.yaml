@@ -50,7 +50,15 @@ proxy-providers:
   Linux.do.free:
     <<: *p
     url: "https://aizaozao.com/s.php/gDy73LXW6O"
+    # url: "https://boon.rr.nu/s/gDy73LXW6O"
+    # url: "https://u.qhq.me/s/gDy73LXW6O"
     path: ./providers/linuxdo_free.yaml
+    #override:
+      #down: "50 Mbps"
+      #up: "50 Mbps"
+      #dialer-proxy: proxy
+      #skip-cert-verify: true
+      #udp: true
   Papertool:
     type: http
     url: "https://api.138host.com/sub/96b368e42d4a2853392153aa2999148d/clashold"
@@ -71,13 +79,22 @@ geox-url:
 # https://hokoory.github.io/clash-mate-doc/config/
 # https://wiki.metacubex.one/config/proxies/transport/
 proxies:
+  - name: "美国住宅-Butler"
+    type: http
+    server: gate-hk.kookeey.info
+    port: 1000
+    username: "6081727-9478c425"
+    password: "dad41cc8-US_Pennsylvania_city_Butler-52790293"
+    dialer-proxy: 美国家宽-Butler
   - name: "US-72live.com"
+    # vmess + ws
     type: trojan
     server: v2ray.72live.com
     port: 443
     password: P@s2word
     cipher: auto
     tls: true
+    # skip-cert-verify: true
     network: ws
     ws-opts:
       path: /some
@@ -85,12 +102,14 @@ proxies:
         Host: v2ray.72live.com
         
   - name: "US-WEST-ClawCloud.com"
+    # vmess + ws
     type: trojan
     server: cnrukzvrarda.us-west-1.clawcloudrun.com
     port: 443
     password: P@s2word
     cipher: auto
     tls: true
+    # skip-cert-verify: true
     network: ws
     ws-opts:
       path: /some
@@ -98,12 +117,14 @@ proxies:
         Host: cnrukzvrarda.us-west-1.clawcloudrun.com
         
   - name: "US-EAST-ClawCloud.com"
+    # vmess + ws
     type: trojan
     server: aumgetqzvfxg.us-east-1.clawcloudrun.com
     port: 443
     password: P@s2word
     cipher: auto
     tls: true
+    # skip-cert-verify: true
     network: ws
     ws-opts:
       path: /some
@@ -111,12 +132,14 @@ proxies:
         Host: aumgetqzvfxg.us-east-1.clawcloudrun.com
 
   - name: "DE-ClawCloud.com"
+    # vmess + ws
     type: trojan
     server: qsfbshkpydbm.eu-central-1.clawcloudrun.com
     port: 443
     password: P@s2word
     cipher: auto
     tls: true
+    # skip-cert-verify: true
     network: ws
     ws-opts:
       path: /some
@@ -124,12 +147,14 @@ proxies:
         Host: qsfbshkpydbm.eu-central-1.clawcloudrun.com
         
   - name: "SG-ClawCloud.com"
+    # vmess + ws
     type: trojan
     server: wkzwxwpnwtuq.ap-southeast-1.clawcloudrun.com
     port: 443
     password: P@s2word
     cipher: auto
     tls: true
+    # skip-cert-verify: true
     network: ws
     ws-opts:
       path: /some
@@ -137,36 +162,33 @@ proxies:
         Host: wkzwxwpnwtuq.ap-southeast-1.clawcloudrun.com
         
   - name: "JP-ClawCloud.com"
+    # vmess + ws
     type: trojan
     server: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
     port: 443
     password: P@s2word
     cipher: auto
     tls: true
+    # skip-cert-verify: true
     network: ws
     ws-opts:
       path: /some
       headers:
         Host: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
-
-  # 【新增】代理链节点
-  - name: "Kookeey-US-Butler-Chained"
-    type: https
-    server: gate-hk.kookeey.info
-    port: 1000
-    username: "6081727-9478c425"
-    password: "dad41cc8-US_Pennsylvania_city_Butler-52790293"
-    proxy: "SG-ClawCloud.com"
         
 proxy-groups:
-  - name: "🐟 漏网之鱼"
+  - name: "家宽组"
+  type: select
+  proxies:
+    - "美国住宅-Butler"
+  - name: "🐟 漏网之鱼" # 最高优先级，手动指定直连
     type: select
     hidden: true
     proxies:
       - DIRECT
       - "🇺🇳全球优选"
       
-  - name: "固定IP"
+  - name: "固定IP"  # 手动选择，手动处理
     type: select
     proxies:
       - "US-72live.com"
@@ -176,13 +198,7 @@ proxy-groups:
       - "JP-ClawCloud.com"
       - "SG-ClawCloud.com"
 
-  # 【新增】家宽组
-  - name: "家宽组"
-    type: select
-    proxies:
-      - "Kookeey-US-Butler-Chained"
-
-  - name: "Papertool"
+  - name: "Papertool"  # 纸飞机，最高优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
@@ -192,7 +208,7 @@ proxy-groups:
     use:
       - Papertool
 
-  - name: "shunfeng"
+  - name: "shunfeng"  # 顺丰，第二优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
@@ -200,7 +216,7 @@ proxy-groups:
     use:
       - shunfeng
 
-  - name: "mxlsub.full"
+  - name: "mxlsub.full"  # 手动选择，手动处理
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
@@ -208,7 +224,7 @@ proxy-groups:
     use:
       - mxlsub.full
       
-  - name: "Linux.do.free"
+  - name: "Linux.do.free"  # Linux.do.free，最低优先级
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
@@ -217,8 +233,8 @@ proxy-groups:
       - Linux.do.free
     
   - name: "AI站点代理"
-    type: url-test
-    url: http://www.gstatic.com/generate_204
+    type: url-test #自动测试
+    url: http://www.gstatic.com/generate_204 #https://www.google.com
     interval: 300
     tolerance: 50
     include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
@@ -229,15 +245,15 @@ proxy-groups:
       - Linux.do.free
       - mxlsub.full
 
-  - name: "🇺🇳全球优选"
-    type: url-test
+  - name: "🇺🇳全球优选"  # 主代理组
+    type: url-test  # 使用 url-test 策略
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
     use:
-      - Papertool
-      - shunfeng
-      - Linux.do.free
+      - Papertool  # 优先使用纸飞机
+      - shunfeng   # 其次顺丰
+      - Linux.do.free  # 最后使用 Linux.do.free
       - mxlsub.full
 
   - name: 🍃 应用净化
@@ -258,18 +274,17 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
-      # 【修正】为所有带特殊字符的组名添加引号
-      - "🇺🇳全球优选"
-      - "固定IP"
-      - "家宽组"
-      - "Papertool"
-      - "shunfeng"
-      - "Linux.do.free"
-      - "mxlsub.full"
+      - 🇺🇳全球优选
+      - 固定IP
+      - Papertool
+      - shunfeng
+      - Linux.do.free
+      - mxlsub.full
 
 prule-config: &prule-config
   type: http
   interval: 86400
+# https://github.com/Ekko1048/OpenClashRule
 rule-providers:
   reject:
     <<: *prule-config
@@ -341,18 +356,26 @@ rule-providers:
     behavior: ipcidr
     url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
     path: ./ruleset/loyalsoldier/telegramcidr.yaml
+
+  # 从 URL 加载白名单
   whitelist:
     type: http
     behavior: domain
     url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"
-    interval: 86400
+    interval: 86400  # 可选：设置更新间隔（秒）
 
 rules:
+  # Local Area Network
   - IP-CIDR,192.168.5.0/24,DIRECT,no-resolve
+
+  # 全局强制直连白名单 (确保这条规则在其他规则之前)
   - RULE-SET,whitelist,DIRECT
+
+  # proxy
   - DOMAIN-SUFFIX,72live.com,🎯 全球直连
   - DOMAIN-SUFFIX,outlook.com,🎯 全球直连
   - DOMAIN-SUFFIX,live.com,🎯 全球直连
+  
   - DOMAIN-SUFFIX,openai.com,AI站点代理
   - DOMAIN-SUFFIX,anthropic.com,AI站点代理
   - DOMAIN-SUFFIX,claude.ai,AI站点代理
@@ -363,14 +386,21 @@ rules:
   - DOMAIN-SUFFIX,x.ai,AI站点代理
   - DOMAIN-SUFFIX,midjourney.com,AI站点代理
   - DOMAIN-SUFFIX,github.com,🇺🇳全球优选
+
+  # RULE-SET
   - RULE-SET,icloud,🎯 全球直连
   - RULE-SET,apple,🎯 全球直连
+
   - RULE-SET,proxy,🇺🇳全球优选
   - RULE-SET,gfw,🇺🇳全球优选
   - RULE-SET,google,🇺🇳全球优选
   - RULE-SET,greatfire,🇺🇳全球优选
+
   - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇺🇳全球优选
   - DOMAIN-SUFFIX,lobehub.com,🇺🇳全球优选
   - DOMAIN-SUFFIX,sealos.io,🇺🇳全球优选
+
   - GEOIP,CN,🎯 全球直连
-  - GEOIP,HK,
+  - GEOIP,HK,🎯 全球直连
+  # - GEOIP,TW,🎯 全球直连
+  - MATCH,🐟 漏网之鱼
