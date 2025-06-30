@@ -26,6 +26,15 @@ allow-lan: false
 mode: rule
 log-level: warning
 
+# hosts:
+#  'gitea.fueze.cn': 192.168.0.225
+
+# https://oneclash.githubrowcontent.com/2024/12/20241217.yaml
+# https://www.shareclash.com/jddy/20241217-clash.yaml
+# https://www.dayclash.com/dayfree/20241217-clash.yaml
+# https://www.freeclashnode.com/uploads/2024/12/4-20241218.yaml
+# https://v2rayclash.org/uploads/2024/12/4-20241218.yml
+# https://clashv2ray.org/uploads/2024/12/4-20241218.yml
 p: &p
   type: http
   interval: 3600
@@ -58,6 +67,9 @@ geox-url:
   geosite: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
   mmdb: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
 
+# 参考
+# https://hokoory.github.io/clash-mate-doc/config/
+# https://wiki.metacubex.one/config/proxies/transport/
 proxies:
   - name: "US-72live.com"
     type: trojan
@@ -137,6 +149,7 @@ proxies:
       headers:
         Host: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
 
+  # 【新增】代理链节点
   - name: "Kookeey-US-Butler-Chained"
     type: https
     server: gate-hk.kookeey.info
@@ -163,6 +176,7 @@ proxy-groups:
       - "JP-ClawCloud.com"
       - "SG-ClawCloud.com"
 
+  # 【新增】家宽组
   - name: "家宽组"
     type: select
     proxies:
@@ -244,13 +258,14 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
-      - 🇺🇳全球优选
-      - 固定IP
-      - 家宽组
-      - Papertool
-      - shunfeng
-      - Linux.do.free
-      - mxlsub.full
+      # 【修正】为所有带特殊字符的组名添加引号
+      - "🇺🇳全球优选"
+      - "固定IP"
+      - "家宽组"
+      - "Papertool"
+      - "shunfeng"
+      - "Linux.do.free"
+      - "mxlsub.full"
 
 prule-config: &prule-config
   type: http
@@ -358,5 +373,4 @@ rules:
   - DOMAIN-SUFFIX,lobehub.com,🇺🇳全球优选
   - DOMAIN-SUFFIX,sealos.io,🇺🇳全球优选
   - GEOIP,CN,🎯 全球直连
-  - GEOIP,HK,🎯 全球直连
-  - MATCH,🐟 漏网之鱼
+  - GEOIP,HK,
