@@ -80,7 +80,7 @@ geox-url:
 # https://wiki.metacubex.one/config/proxies/transport/
 proxies:
   - name: "美国住宅-Butler"
-    type: https
+    type: http
     server: gate-hk.kookeey.info
     port: 1000
     username: "6081727-9478c425"
