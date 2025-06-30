@@ -85,7 +85,6 @@ proxies:
     port: 1000
     username: "6081727-9478c425"
     password: "dad41cc8-US_Iowa_city_Butler-90673696"
-    tls: true
     dialer-proxy: "Papertool"
   - name: "US-72live.com"
     # vmess + ws
