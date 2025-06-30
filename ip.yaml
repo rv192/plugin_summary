@@ -70,4 +70,293 @@ proxies:
     ws-opts:
       path: /some
       headers:
-        Host: v2r
+        Host: v2ray.72live.com
+        
+  - name: "US-WEST-ClawCloud.com"
+    type: trojan
+    server: cnrukzvrarda.us-west-1.clawcloudrun.com
+    port: 443
+    password: P@s2word
+    cipher: auto
+    tls: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: cnrukzvrarda.us-west-1.clawcloudrun.com
+        
+  - name: "US-EAST-ClawCloud.com"
+    type: trojan
+    server: aumgetqzvfxg.us-east-1.clawcloudrun.com
+    port: 443
+    password: P@s2word
+    cipher: auto
+    tls: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: aumgetqzvfxg.us-east-1.clawcloudrun.com
+
+  - name: "DE-ClawCloud.com"
+    type: trojan
+    server: qsfbshkpydbm.eu-central-1.clawcloudrun.com
+    port: 443
+    password: P@s2word
+    cipher: auto
+    tls: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: qsfbshkpydbm.eu-central-1.clawcloudrun.com
+        
+  - name: "SG-ClawCloud.com"
+    type: trojan
+    server: wkzwxwpnwtuq.ap-southeast-1.clawcloudrun.com
+    port: 443
+    password: P@s2word
+    cipher: auto
+    tls: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: wkzwxwpnwtuq.ap-southeast-1.clawcloudrun.com
+        
+  - name: "JP-ClawCloud.com"
+    type: trojan
+    server: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
+    port: 443
+    password: P@s2word
+    cipher: auto
+    tls: true
+    network: ws
+    ws-opts:
+      path: /some
+      headers:
+        Host: jepwvsfwvswf.ap-northeast-1.clawcloudrun.com
+
+  - name: "Kookeey-US-Butler-Chained"
+    type: https
+    server: gate-hk.kookeey.info
+    port: 1000
+    username: "6081727-9478c425"
+    password: "dad41cc8-US_Pennsylvania_city_Butler-52790293"
+    proxy: "SG-ClawCloud.com"
+        
+proxy-groups:
+  - name: "🐟 漏网之鱼"
+    type: select
+    hidden: true
+    proxies:
+      - DIRECT
+      - "🇺🇳全球优选"
+      
+  - name: "固定IP"
+    type: select
+    proxies:
+      - "US-72live.com"
+      - "US-WEST-ClawCloud.com"
+      - "US-EAST-ClawCloud.com"
+      - "DE-ClawCloud.com"
+      - "JP-ClawCloud.com"
+      - "SG-ClawCloud.com"
+
+  - name: "家宽组"
+    type: select
+    proxies:
+      - "Kookeey-US-Butler-Chained"
+
+  - name: "Papertool"
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
+    exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
+    use:
+      - Papertool
+
+  - name: "shunfeng"
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - shunfeng
+
+  - name: "mxlsub.full"
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - mxlsub.full
+      
+  - name: "Linux.do.free"
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - Linux.do.free
+    
+  - name: "AI站点代理"
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    include-filter: "(?i)新加坡|日本|韩国|台湾|美国|德国|SGP|JPN|KOR|TWN|USA|DE"
+    exclude-filter: "(?i)香港|中国|HKG|CHN|CN"
+    use:
+      - Papertool
+      - shunfeng
+      - Linux.do.free
+      - mxlsub.full
+
+  - name: "🇺🇳全球优选"
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    use:
+      - Papertool
+      - shunfeng
+      - Linux.do.free
+      - mxlsub.full
+
+  - name: 🍃 应用净化
+    type: select
+    hidden: true
+    proxies:
+      - REJECT
+      - DIRECT
+
+  - name: 🎯 全球直连
+    type: select
+    hidden: true
+    proxies:
+      - DIRECT
+      - "🇺🇳全球优选"
+
+  - name: "🚾手动选路"
+    type: select
+    proxies:
+      - DIRECT
+      - 🇺🇳全球优选
+      - 固定IP
+      - 家宽组
+      - Papertool
+      - shunfeng
+      - Linux.do.free
+      - mxlsub.full
+
+prule-config: &prule-config
+  type: http
+  interval: 86400
+rule-providers:
+  reject:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/reject.txt
+    path: ./ruleset/reject.yaml
+  icloud:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt
+    path: ./ruleset/icloud.yaml
+  apple:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt
+    path: ./ruleset/apple.yaml
+  google:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt
+    path: ./ruleset/google.yaml
+  proxy:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
+    path: ./ruleset/proxy.yaml
+  direct:
+    <<: *prule-config
+    behavior: domain
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt
+    path: ./ruleset/direct.yaml
+  private:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt"
+    path: ./ruleset/loyalsoldier/private.yaml
+  cncidr:
+    <<: *prule-config
+    behavior: ipcidr
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt
+    path: ./ruleset/cncidr.yaml
+  lancidr:
+    <<: *prule-config
+    behavior: ipcidr
+    url: https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
+    path: ./ruleset/lancidr.yaml
+  tld-not-cn:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/tld-not-cn.txt"
+    path: ./ruleset/tld-not-cn.yaml
+  gfw:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/gfw.txt"
+    path: ./ruleset/gfw.yaml
+  greatfire:
+    <<: *prule-config
+    behavior: domain
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/greatfire.txt"
+    path: ./ruleset/greatfire.yaml
+  applications:
+    <<: *prule-config
+    behavior: classical
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt"
+    path: ./ruleset/loyalsoldier/applications.yaml
+  telegramcidr:
+    <<: *prule-config
+    behavior: ipcidr
+    url: "https://fastly.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt"
+    path: ./ruleset/loyalsoldier/telegramcidr.yaml
+  whitelist:
+    type: http
+    behavior: domain
+    url: "https://raw.githubusercontent.com/rv192/plugin_summary/refs/heads/master/whitelist.txt"
+    interval: 86400
+
+rules:
+  - IP-CIDR,192.168.5.0/24,DIRECT,no-resolve
+  - RULE-SET,whitelist,DIRECT
+  - DOMAIN-SUFFIX,72live.com,🎯 全球直连
+  - DOMAIN-SUFFIX,outlook.com,🎯 全球直连
+  - DOMAIN-SUFFIX,live.com,🎯 全球直连
+  - DOMAIN-SUFFIX,openai.com,AI站点代理
+  - DOMAIN-SUFFIX,anthropic.com,AI站点代理
+  - DOMAIN-SUFFIX,claude.ai,AI站点代理
+  - DOMAIN-SUFFIX,groq.com,AI站点代理
+  - DOMAIN-SUFFIX,google.dev,AI站点代理
+  - DOMAIN-SUFFIX,sambanova.ai,AI站点代理
+  - DOMAIN-SUFFIX,cerebras.ai,AI站点代理
+  - DOMAIN-SUFFIX,x.ai,AI站点代理
+  - DOMAIN-SUFFIX,midjourney.com,AI站点代理
+  - DOMAIN-SUFFIX,github.com,🇺🇳全球优选
+  - RULE-SET,icloud,🎯 全球直连
+  - RULE-SET,apple,🎯 全球直连
+  - RULE-SET,proxy,🇺🇳全球优选
+  - RULE-SET,gfw,🇺🇳全球优选
+  - RULE-SET,google,🇺🇳全球优选
+  - RULE-SET,greatfire,🇺🇳全球优选
+  - DOMAIN-SUFFIX,easy-tcp-analysis.tools,🇺🇳全球优选
+  - DOMAIN-SUFFIX,lobehub.com,🇺🇳全球优选
+  - DOMAIN-SUFFIX,sealos.io,🇺🇳全球优选
+  - GEOIP,CN,🎯 全球直连
+  - GEOIP,HK,🎯 全球直连
+  - MATCH,🐟 漏网之鱼
